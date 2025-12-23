@@ -13,7 +13,7 @@ GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini
 HEADERS = {'Content-Type': 'application/json'}
 
 # Set the maximum number of articles to retrieve for the single search query
-MAX_ARTICLES = 3
+MAX_ARTICLES = 10
 
 # API Keys
 load_dotenv()
@@ -24,6 +24,15 @@ if not NCBI_API_KEY or not GEMINI_API_KEY:
     print("FATAL ERROR: API keys not found. Please ensure you have set them in your environment or a local .env file.")
     # Exit gracefully if keys are missing
     exit()
+
+def print_compliance_notice():
+    print("-" * 60)
+    print("NCBI COMPLIANCE NOTICE")
+    print("This tool uses NCBI E-utilities. By proceeding, you agree to")
+    print("NCBI's Disclaimer and Copyright notice:")
+    print("https://www.ncbi.nlm.nih.gov/About/disclaimer.html")
+    print("-" * 60)
+    print()
 
 # --- Helper Function for Rate Limiting ---
 def exponential_backoff_request(url: str, max_retries: int = 5) -> requests.Response | None:
@@ -59,7 +68,7 @@ def exponential_backoff_request(url: str, max_retries: int = 5) -> requests.Resp
     return None
 
 
-def get_pubmed_abstracts(search_term: str) -> Tuple[str, List[str]]:
+def fetch_abstracts(search_term: str) -> Tuple[str, List[str]]:
     """
     Executes ESearch and EFetch to retrieve abstracts for the top MAX_ARTICLES results.
     Returns a single concatenated abstract string and a list of PMIDs.
@@ -118,7 +127,7 @@ def get_pubmed_abstracts(search_term: str) -> Tuple[str, List[str]]:
     return combined_abstract_text.strip(), pmids
 
 
-def analyze_abstract_with_gemini(combined_abstract: str, analysis_task: str, pmids: List[str]) -> str:
+def analyze_abstract(combined_abstract: str, analysis_task: str, pmids: List[str]) -> str:
     """
     Sends the combined abstract content to the Gemini API for a single, consolidated analysis.
     """
@@ -154,47 +163,59 @@ def analyze_abstract_with_gemini(combined_abstract: str, analysis_task: str, pmi
     except requests.exceptions.RequestException as e:
         return f"An error occurred during the Gemini API call: {e}"
 
-def print_compliance_notice():
-    print("-" * 60)
-    print("NCBI COMPLIANCE NOTICE")
-    print("This tool uses NCBI E-utilities. By proceeding, you agree to")
-    print("NCBI's Disclaimer and Copyright notice:")
-    print("https://www.ncbi.nlm.nih.gov/About/disclaimer.html")
-    print("-" * 60)
-    print()
+
+def process_metabolite(metabolite, task):
+    """
+    Orchestrates the full flow for a single metabolite.
+    """
+    print(f"\n--- Starting Analysis: {metabolite} ---")
+
+    try:
+        # 1. Get the data
+        combined_abstract, pmids = fetch_abstracts(metabolite)
+
+        if not combined_abstract:
+            return f"No abstracts found for {metabolite}."
+
+        # 2. Get the analysis
+        report = analyze_abstract(combined_abstract, task, pmids)
+        return report
+
+    except Exception as e:
+        return f"Error processing {metabolite}: {str(e)}"
+
+
+def main():
+    print_compliance_notice()
+
+    # --- CONFIGURATION ---
+    metabolites_to_process = ["L-Arginine", "Choline", "Betaine", "Creatine"]
+
+    # The specific focus for the LLM
+    analysis_task = "neurological health and cognitive function"
+
+    # --- EXECUTION ---
+    all_reports = {}
+
+    start_time = time.time()
+
+    for metabolite in metabolites_to_process:
+        report = process_metabolite(metabolite, analysis_task)
+        all_reports[metabolite] = report
+        print(f"  > Result: {report}")
+
+    end_time = time.time()
+
+    # --- FINAL SUMMARY ---
+    print("\n" + "=" * 60)
+    print("BATCH PROCESSING COMPLETE")
+    print(f"Total time: {round(end_time - start_time, 2)} seconds")
+    print(f"Metabolites processed: {len(metabolites_to_process)}")
+    print("=" * 60)
 
 # --- Example Execution (Single Metabolite) ---
 if __name__ == "__main__":
-    print_compliance_notice()
-
-    # Single metabolite and analysis task
-    metabolite_to_analyze = "Serotonin"
-    analysis_task = "Give me a list of characteristics of this metabolite associated with human health, synthesizing findings from all sources."
-
-    print("=" * 60)
-    print(f"STARTING CONSOLIDATED ANALYSIS FOR: {metabolite_to_analyze} ({MAX_ARTICLES} articles)")
-
-    # 1. Fetch combined abstracts and PMIDs
-    combined_abstract, pmids = get_pubmed_abstracts(metabolite_to_analyze)
-
-    final_result = {
-        "Metabolite": metabolite_to_analyze,
-        "PMIDs_Used": pmids,
-        "Analysis_Result": "Analysis Failed"
-    }
-
-    if pmids:
-        # 2. Analyze the combined text
-        analysis_result = analyze_abstract_with_gemini(
-            combined_abstract=combined_abstract,
-            analysis_task=analysis_task,
-            pmids=pmids
-        )
-        final_result["Analysis_Result"] = analysis_result
+    if not NCBI_API_KEY or not GEMINI_API_KEY:
+        print("ERROR: API keys not found. Check your .env file.")
     else:
-        final_result["Analysis_Result"] = combined_abstract  # Contains the error message
-
-    print("\n\n" + "#" * 60)
-    print("FINAL CONSOLIDATED RESULT SUMMARY")
-    print("#" * 60)
-    print(json.dumps(final_result, indent=2))
+        main()
