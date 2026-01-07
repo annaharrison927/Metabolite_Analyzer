@@ -13,7 +13,7 @@ GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini
 HEADERS = {'Content-Type': 'application/json'}
 
 # Set the maximum number of articles to retrieve for the single search query
-MAX_ARTICLES = 10
+MAX_ARTICLES = 100
 
 # API Keys
 load_dotenv()
@@ -112,6 +112,18 @@ def fetch_abstracts(search_term: str) -> Tuple[str, List[str]]:
 
     # The XML structure has multiple PubmedArticle elements
     for article in root.findall('.//PubmedArticle'):
+        # Extract PMID
+        pmid_el = article.find(".//PMID")
+        article_pmid = pmid_el.text if pmid_el is not None else "UnknownPMID"
+
+        # Extract Title
+        title_el = article.find(".//ArticleTitle")
+        title = title_el.text if title_el is not None else "No Title"
+
+        # Extract First Author for context
+        author_el = article.find(".//Author/LastName")
+        author = author_el.text if author_el is not None else "Unknown"
+
         abstract_text = ""
         # Look for AbstractText within the current article
         abstract_elements = article.findall('.//AbstractText')
@@ -120,9 +132,8 @@ def fetch_abstracts(search_term: str) -> Tuple[str, List[str]]:
                 abstract_text += element.text + " "
 
         # Add separator between abstracts for clarity during analysis
-        article_pmid = article.find('.//PMID').text
         if abstract_text:
-            combined_abstract_text += f"\n\n--- ARTICLE PMID {article_pmid} ---\n{abstract_text.strip()}"
+            combined_abstract_text += f"\n\n--- ARTICLE PMID {article_pmid} | AUTHOR: {author}\nTITLE: {title}---\n{abstract_text.strip()}"
 
     return combined_abstract_text.strip(), pmids
 
@@ -139,7 +150,8 @@ def analyze_abstract(combined_abstract: str, analysis_task: str, pmids: List[str
     system_prompt = (
         "You are a concise, biomedical expert. Your summary must be objective, "
         "and synthesize the main findings from ALL provided abstracts into a single, cohesive, bulleted list. Each"
-        "bullet point should be short and to the point."
+        "bullet point should be short and to the point. CITATION RULE: You MUST cite every claim using the provided SOURCE_ID (PMID)."
+        "Format citations as [PMID: 1234567]. Do not invent PMIDs."
     )
 
     full_query = (
@@ -192,7 +204,7 @@ def main():
     metabolites_to_process = ["L-Arginine", "Choline", "Betaine", "Creatine"]
 
     # The specific focus for the LLM
-    analysis_task = "neurological health and cognitive function"
+    analysis_task = "positive, negative, and neutral effects of metabolite on human body systems"
 
     # --- EXECUTION ---
     all_reports = {}
