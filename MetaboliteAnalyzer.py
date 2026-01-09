@@ -35,13 +35,17 @@ def print_compliance_notice():
     print()
 
 # --- Helper Function for Rate Limiting ---
-def exponential_backoff_request(url: str, max_retries: int = 5) -> requests.Response | None:
+def exponential_backoff_request(url: str, method: str = "GET", payload: dict = None, max_retries: int = 5) -> (
+        requests.Response | None):
     """
-    Makes an HTTP GET request with exponential backoff for handling rate limits (429).
+    Makes an HTTP request with exponential backoff for handling rate limits (429) and server errors.
     """
     for attempt in range(max_retries):
         try:
-            response = requests.get(url)
+            if method == "GET":
+                response = requests.get(url)
+            else:
+                response = requests.post(url, headers=HEADERS, json=payload)
 
             # Success or non-rate-limit client error (4xx other than 429)
             if response.status_code != 429 and response.status_code < 500:
@@ -164,17 +168,15 @@ def analyze_abstract(combined_abstract: str, analysis_task: str, pmids: List[str
         "systemInstruction": {"parts": [{"text": system_prompt}]}
     }
 
-    try:
-        response = requests.post(f"{GEMINI_API_URL}?key={GEMINI_API_KEY}", headers=HEADERS, json=payload)
-        response.raise_for_status()
+    gemini_url_with_key = f"{GEMINI_API_URL}?key={GEMINI_API_KEY}"
 
+    response = exponential_backoff_request(gemini_url_with_key, method="POST", payload=payload)
+
+    if response:
         response_data = response.json()
-
         return response_data['candidates'][0]['content']['parts'][0]['text']
-
-    except requests.exceptions.RequestException as e:
-        return f"An error occurred during the Gemini API call: {e}"
-
+    else:
+        return "An error occurred during the Gemini API call after multiple retries."
 
 def process_metabolite(metabolite, task):
     """
