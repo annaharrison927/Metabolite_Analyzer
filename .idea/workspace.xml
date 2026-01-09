@@ -4,8 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="d836f2f4-27c6-4626-adab-ce2ac0332e9b" name="Changes" comment="Incorporated ID, title, and author extraction when fetching articles. LLM is now required to include citations with each claim.">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    <list default="true" id="d836f2f4-27c6-4626-adab-ce2ac0332e9b" name="Changes" comment="Edited the exponential_backoff_request helper function so that it can also be used for rate limiting with LLM requests. Code takes slightly longer to run, but there is now less risk of getting 429 errors.">
       <change beforePath="$PROJECT_DIR$/MetaboliteAnalyzer.py" beforeDir="false" afterPath="$PROJECT_DIR$/MetaboliteAnalyzer.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -111,7 +110,7 @@
       <workItem from="1766507951823" duration="3260000" />
       <workItem from="1767801722991" duration="8737000" />
       <workItem from="1767897542067" duration="815000" />
-      <workItem from="1767973923918" duration="1888000" />
+      <workItem from="1767973923918" duration="5403000" />
     </task>
     <task id="LOCAL-00001" summary="Initial commit">
       <option name="closed" value="true" />
@@ -137,7 +136,15 @@
       <option name="project" value="LOCAL" />
       <updated>1767809994352</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="Edited the exponential_backoff_request helper function so that it can also be used for rate limiting with LLM requests. Code takes slightly longer to run, but there is now less risk of getting 429 errors.">
+      <option name="closed" value="true" />
+      <created>1767975919268</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1767975919268</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -147,9 +154,10 @@
     <MESSAGE value="Initial commit" />
     <MESSAGE value="Changed main block so that a list of metabolites is processed instead of just one metabolite per run." />
     <MESSAGE value="Incorporated ID, title, and author extraction when fetching articles. LLM is now required to include citations with each claim." />
-    <option name="LAST_COMMIT_MESSAGE" value="Incorporated ID, title, and author extraction when fetching articles. LLM is now required to include citations with each claim." />
+    <MESSAGE value="Edited the exponential_backoff_request helper function so that it can also be used for rate limiting with LLM requests. Code takes slightly longer to run, but there is now less risk of getting 429 errors." />
+    <option name="LAST_COMMIT_MESSAGE" value="Edited the exponential_backoff_request helper function so that it can also be used for rate limiting with LLM requests. Code takes slightly longer to run, but there is now less risk of getting 429 errors." />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/MetaboliteAnalyzer$MetaboliteAnalyzer.coverage" NAME="MetaboliteAnalyzer Coverage Results" MODIFIED="1767811727904" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/MetaboliteAnalyzer$MetaboliteAnalyzer.coverage" NAME="MetaboliteAnalyzer Coverage Results" MODIFIED="1767979226299" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
