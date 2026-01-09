@@ -7,6 +7,7 @@ import random
 from typing import List, Tuple
 from dotenv import load_dotenv
 from requests import Response
+from enum import Enum, auto
 
 # --- Configuration & Setup ---
 NCBI_BASE_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
@@ -14,14 +15,13 @@ GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini
 HEADERS = {'Content-Type': 'application/json'}
 MAX_ARTICLES = 100
 
-# API Keys
 load_dotenv()
 NCBI_API_KEY = os.environ.get("NCBI_API_KEY")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
-if not NCBI_API_KEY or not GEMINI_API_KEY:
-    print("FATAL ERROR: API keys not found. Please ensure you have set them in your environment or a local .env file.")
-    exit()
+class Method(Enum):
+    SEARCH = auto()
+    FETCH = auto()
 
 def print_compliance_notice():
     print("-" * 60)
@@ -65,19 +65,19 @@ def exponential_backoff_request(url: str, method: str = "GET", payload: dict = N
     print(f"Failed to retrieve data after {max_retries} attempts.")
     return None
 
-def create_url(param: str, method:str = "search") -> str:
+def create_url(query_value: str, method: Method = Method.SEARCH) -> str:
     """
     Creates either an esearch or efetch url depending on method parameter.
-    :param param: str
+    :param query_value: str
     :param method: str
     :return: str
     """
     api_key_param = f"&api_key={NCBI_API_KEY}"
-    if method == "fetch":
-        return f"{NCBI_BASE_URL}efetch.fcgi?db=pubmed&id={param}&retmode=xml&rettype=abstract{api_key_param}"
+    if method == Method.FETCH:
+        return f"{NCBI_BASE_URL}efetch.fcgi?db=pubmed&id={query_value}&retmode=xml&rettype=abstract{api_key_param}"
     else:
         return (
-            f"{NCBI_BASE_URL}esearch.fcgi?db=pubmed&term={param.replace(' ', '+')}"
+            f"{NCBI_BASE_URL}esearch.fcgi?db=pubmed&term={query_value.replace(' ', '+')}"
             f"&retmode=json&retmax={MAX_ARTICLES}&sort=relevance{api_key_param}"
         )
 
@@ -112,26 +112,26 @@ def parse_xml(response: Response) -> str:
     return combined_abstract_text
 
 
-def fetch_abstracts(search_term: str) -> Tuple[str, List[str]]:
+def fetch_abstracts(search_term: str) -> Tuple[str, List[str]] | None:
     """
     Executes ESearch and EFetch to retrieve abstracts for the top MAX_ARTICLES results.
     Returns a single concatenated abstract string and a list of PMIDs.
     """
-    esearch_url = create_url(search_term)
+    esearch_url = create_url(search_term, Method.SEARCH)
     response = exponential_backoff_request(esearch_url)
     if not response:
-        return f"Error: ESearch failed after retries for '{search_term}'.", []
+        return None
 
     search_data = response.json()
     pmids = search_data['esearchresult']['idlist']
     if not pmids:
-        return f"Error: No results found for the query '{search_term}'.", []
+        return None
 
     pmid_list_str = ",".join(pmids)
-    efetch_url = create_url(pmid_list_str, "fetch")
+    efetch_url = create_url(pmid_list_str, Method.FETCH)
     response = exponential_backoff_request(efetch_url)
     if not response:
-        return f"Error: EFetch failed after retries for {pmids}.", pmids
+        return None
 
     combined_abstract_text = parse_xml(response)
     return combined_abstract_text.strip(), pmids
