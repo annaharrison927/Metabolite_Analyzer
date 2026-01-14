@@ -146,7 +146,17 @@ def analyze_abstract(combined_abstract: str, analysis_task: str, pmids: List[str
         "You are a concise, biomedical expert. Your summary must be objective, "
         "and synthesize the main findings from ALL provided abstracts into a single, cohesive, bulleted list. Each"
         "bullet point should be short and to the point. CITATION RULE: You MUST cite every claim using the provided SOURCE_ID (PMID)."
-        "Format citations as [PMID: 1234567]. Do not invent PMIDs."
+        "Format citations as [PMID: 1234567]. Following the citation, provide a link to the article in a sub-bullet as:"
+        "   *(https://pubmed.ncbi.nlm.nih.gov/1234567/)"
+        "Each bullet should be under one of the following three subheadings: ###Positive Effects, ###Negative Effects, "
+        "or ### Neutral/Context-Dependent Effects. Follow this template as a guide for formatting:"
+        "\n## [Metabolite Name]\n"
+        "\n### Positive Effects\n"
+        "* **[Affected System]**: [Observation] [[000000; 111111]].\n"
+        "    *(https://pubmed.ncbi.nlm.nih.gov/000000/)\n"
+        "    *(https://pubmed.ncbi.nlm.nih.gov/111111/)\n"
+        "\n### Negative Effects\n"
+        "\n### Neutral/Context-Dependent Effects\n"
     )
 
     full_query = (
@@ -196,7 +206,10 @@ def main():
         print(f"\n--- Starting Analysis: {metabolite} ---\n")
         report = process_metabolite(metabolite, analysis_task)
         all_reports[metabolite] = report
-        print(f"  > Result: {report}")
+        print(f"  > Result: {report}\n")
+        print("15-second server cooldown...\n")
+        time.sleep(15)
+
 
     end_time = time.time()
 
@@ -205,6 +218,8 @@ def main():
     print(f"Total time: {round(end_time - start_time, 2)} seconds")
     print(f"Metabolites processed: {len(metabolites_to_process)}")
     print("=" * 60)
+    print("FINAL REPORT:")
+    print(all_reports)
 
 if __name__ == "__main__":
     if not NCBI_API_KEY or not GEMINI_API_KEY:

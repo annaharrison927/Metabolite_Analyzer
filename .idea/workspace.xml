@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="d836f2f4-27c6-4626-adab-ce2ac0332e9b" name="Changes" comment="Refactored code for readability. Deleted unnecessary print statements and comments, added more block comments to each method. Made create_url and parse_xml helper methods for the fetch_abstracts method.">
+    <list default="true" id="d836f2f4-27c6-4626-adab-ce2ac0332e9b" name="Changes" comment="Created an Enum class for the method parameter used in the create_url function. Some additional refactoring for clarity/conciseness.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/MetaboliteAnalyzer.py" beforeDir="false" afterPath="$PROJECT_DIR$/MetaboliteAnalyzer.py" afterDir="false" />
     </list>
@@ -112,6 +112,7 @@
       <workItem from="1767801722991" duration="8737000" />
       <workItem from="1767897542067" duration="815000" />
       <workItem from="1767973923918" duration="6606000" />
+      <workItem from="1768409105257" duration="2716000" />
     </task>
     <task id="LOCAL-00001" summary="Initial commit">
       <option name="closed" value="true" />
@@ -168,6 +169,6 @@
     <option name="LAST_COMMIT_MESSAGE" value="Refactored code for readability. Deleted unnecessary print statements and comments, added more block comments to each method. Made create_url and parse_xml helper methods for the fetch_abstracts method." />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/MetaboliteAnalyzer$MetaboliteAnalyzer.coverage" NAME="MetaboliteAnalyzer Coverage Results" MODIFIED="1767979226299" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/MetaboliteAnalyzer$MetaboliteAnalyzer.coverage" NAME="MetaboliteAnalyzer Coverage Results" MODIFIED="1768411630350" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
