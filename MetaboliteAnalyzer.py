@@ -153,8 +153,8 @@ def analyze_abstract(combined_abstract: str, analysis_task: str, pmids: List[str
         "\n## [Metabolite Name]\n"
         "\n### Positive Effects\n"
         "* **[Affected System]**: [Observation] [[000000; 111111]].\n"
-        "    *(https://pubmed.ncbi.nlm.nih.gov/000000/)\n"
-        "    *(https://pubmed.ncbi.nlm.nih.gov/111111/)\n"
+        "    * (https://pubmed.ncbi.nlm.nih.gov/000000/)\n"
+        "    * (https://pubmed.ncbi.nlm.nih.gov/111111/)\n"
         "\n### Negative Effects\n"
         "\n### Neutral/Context-Dependent Effects\n"
     )
@@ -200,12 +200,14 @@ def main():
     metabolites_to_process = ["L-Arginine", "Choline", "Betaine", "Creatine"]
     analysis_task = "positive, negative, and neutral effects of metabolite on human body systems"
     all_reports = {}
+    report_string = ""
     start_time = time.time()
 
     for metabolite in metabolites_to_process:
         print(f"\n--- Starting Analysis: {metabolite} ---\n")
         report = process_metabolite(metabolite, analysis_task)
         all_reports[metabolite] = report
+        report_string = report_string + report
         print(f"  > Result: {report}\n")
         print("15-second server cooldown...\n")
         time.sleep(15)
@@ -219,7 +221,10 @@ def main():
     print(f"Metabolites processed: {len(metabolites_to_process)}")
     print("=" * 60)
     print("FINAL REPORT:")
-    print(all_reports)
+    print(report_string)
+
+    with open("metabolite_report.md", "w", encoding="utf-8") as md_file:
+        md_file.write(report_string)
 
 if __name__ == "__main__":
     if not NCBI_API_KEY or not GEMINI_API_KEY:
