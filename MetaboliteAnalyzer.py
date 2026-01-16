@@ -8,6 +8,7 @@ from typing import List, Tuple
 from dotenv import load_dotenv
 from requests import Response
 from enum import Enum, auto
+from markdown_pdf import MarkdownPdf, Section
 
 # --- Configuration & Setup ---
 NCBI_BASE_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
@@ -203,6 +204,15 @@ def process_metabolite(metabolite, task):
     except Exception as e:
         return f"Error processing {metabolite}: {str(e)}"
 
+def write_report(report: str, file_name: str):
+    with open(f"{file_name}.md", "w", encoding="utf-8") as md_file:
+        md_file.write(report)
+    with open(f"{file_name}.md", "r", encoding="utf-8") as md_file:
+        markdown_content = md_file.read()
+
+    pdf = MarkdownPdf()
+    pdf.add_section(Section(markdown_content))
+    pdf.save(f"{file_name}.pdf")
 
 def main():
     print_compliance_notice()
@@ -222,6 +232,8 @@ def main():
         time.sleep(15)
 
     final_report = "# Metabolite Report\n" + report_string
+    file_name = "metabolite_report4"
+    write_report(final_report, file_name)
 
     end_time = time.time()
 
@@ -230,9 +242,6 @@ def main():
     print(f"Total time: {round(end_time - start_time, 2)} seconds")
     print(f"Metabolites processed: {len(metabolites_to_process)}")
     print("=" * 60)
-
-    with open("metabolite_report.md", "w", encoding="utf-8") as md_file:
-        md_file.write(final_report)
 
 if __name__ == "__main__":
     if not NCBI_API_KEY or not GEMINI_API_KEY:
