@@ -1,9 +1,9 @@
-import json
 import requests
-import xml.etree.ElementTree as ET
+import xml.etree.ElementTree as ElementTree
 import os
 import time
 import random
+import pandas as pd
 from typing import List, Tuple
 from dotenv import load_dotenv
 from requests import Response
@@ -65,6 +65,11 @@ def exponential_backoff_request(url: str, method: str = "GET", payload: dict = N
     print(f"Failed to retrieve data after {max_retries} attempts.")
     return None
 
+def get_metabolites() -> List[str]:
+    metabolite_file = pd.read_csv("metabolite_list.csv")
+    metabolite_df = pd.DataFrame(metabolite_file)
+    return metabolite_df['Metabolites'].tolist()
+
 def create_url(query_value: str, method: Method = Method.SEARCH) -> str:
     """
     Creates either an esearch or efetch url depending on method parameter.
@@ -87,7 +92,7 @@ def parse_xml(response: Response) -> str:
     :param response: Response
     :return: str
     """
-    root = ET.fromstring(response.text)
+    root = ElementTree.fromstring(response.text)
     combined_abstract_text = ""
 
     for article in root.findall('.//PubmedArticle'):
@@ -137,7 +142,7 @@ def fetch_abstracts(search_term: str) -> Tuple[str, List[str]] | None:
     return combined_abstract_text.strip(), pmids
 
 
-def analyze_abstract(combined_abstract: str, analysis_task: str, pmids: List[str]) -> str:
+def analyze_abstract(combined_abstract: str, analysis_task: str) -> str:
     """
     Sends the combined abstract content to the Gemini API for a single, consolidated analysis.
     """
@@ -160,7 +165,7 @@ def analyze_abstract(combined_abstract: str, analysis_task: str, pmids: List[str
         "\n### Neutral/Context-Dependent Effects\n"
         "Do not repeat affected systems within your subcategories. For example, if you find multiple positive effects "
         "on the Cardiovascular system, list all effects in one bullet. Limit bullet size to 30 words, not including"
-        "citations."
+        "citations. Put two new line characters at the end of your summary."
     )
 
     full_query = (
@@ -192,7 +197,7 @@ def process_metabolite(metabolite, task):
         if not combined_abstract:
             return f"No abstracts found for {metabolite}."
 
-        report = analyze_abstract(combined_abstract, task, pmids)
+        report = analyze_abstract(combined_abstract, task)
         return report
 
     except Exception as e:
@@ -201,7 +206,7 @@ def process_metabolite(metabolite, task):
 
 def main():
     print_compliance_notice()
-    metabolites_to_process = ["L-Arginine", "Choline", "Betaine", "Creatine"]
+    metabolites_to_process = get_metabolites()
     analysis_task = "positive, negative, and neutral effects of metabolite on human body systems"
     all_reports = {}
     report_string = ""
