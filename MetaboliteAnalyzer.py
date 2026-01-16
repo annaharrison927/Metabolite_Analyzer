@@ -148,6 +148,7 @@ def analyze_abstract(combined_abstract: str, analysis_task: str, pmids: List[str
         "bullet point should be short and to the point. CITATION RULE: You MUST cite every claim using the provided SOURCE_ID (PMID)."
         "Format citations as [PMID: 1234567]. Following the citation, provide a link to the article in a sub-bullet as:"
         "   *(https://pubmed.ncbi.nlm.nih.gov/1234567/)"
+        "Before your summary, create a subheading with the metabolite name (e.g.: \n## [Metabolite Name]\n)"
         "Each bullet should be under one of the following three subheadings: ###Positive Effects, ###Negative Effects, "
         "or ### Neutral/Context-Dependent Effects. Follow this template as a guide for formatting:"
         "\n## [Metabolite Name]\n"
@@ -157,6 +158,9 @@ def analyze_abstract(combined_abstract: str, analysis_task: str, pmids: List[str
         "    * (https://pubmed.ncbi.nlm.nih.gov/111111/)\n"
         "\n### Negative Effects\n"
         "\n### Neutral/Context-Dependent Effects\n"
+        "Do not repeat affected systems within your subcategories. For example, if you find multiple positive effects "
+        "on the Cardiovascular system, list all effects in one bullet. Limit bullet size to 30 words, not including"
+        "citations."
     )
 
     full_query = (
@@ -212,6 +216,7 @@ def main():
         print("15-second server cooldown...\n")
         time.sleep(15)
 
+    final_report = "# Metabolite Report\n" + report_string
 
     end_time = time.time()
 
@@ -220,11 +225,9 @@ def main():
     print(f"Total time: {round(end_time - start_time, 2)} seconds")
     print(f"Metabolites processed: {len(metabolites_to_process)}")
     print("=" * 60)
-    print("FINAL REPORT:")
-    print(report_string)
 
     with open("metabolite_report.md", "w", encoding="utf-8") as md_file:
-        md_file.write(report_string)
+        md_file.write(final_report)
 
 if __name__ == "__main__":
     if not NCBI_API_KEY or not GEMINI_API_KEY:
