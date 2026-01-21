@@ -95,6 +95,7 @@ def parse_xml(response: Response) -> str:
     """
     root = ElementTree.fromstring(response.text)
     combined_abstract_text = ""
+    seen_titles = set()
 
     for article in root.findall('.//PubmedArticle'):
         pmid_el = article.find(".//PMID")
@@ -102,6 +103,11 @@ def parse_xml(response: Response) -> str:
 
         title_el = article.find(".//ArticleTitle")
         title = title_el.text if title_el is not None else "No Title"
+
+        if title in seen_titles:
+            continue
+
+        seen_titles.add(title)
 
         author_el = article.find(".//Author/LastName")
         author = author_el.text if author_el is not None else "Unknown"
