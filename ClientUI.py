@@ -2,6 +2,10 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import time
+import MockAnalyzer
+
+if 'analysis_result' not in st.session_state:
+    st.session_state['analysis_result'] = None
 
 st.set_page_config(page_title="Metabolite AI Research Assistant", layout="wide")
 st.title('Metabolite Analyzer')
@@ -52,5 +56,9 @@ if st.button('Click to start analysis'):
     if not agreed_to_terms:
         st.write('Please agree to the terms before proceeding.')
     else:
-        show_progress()
+        result = MockAnalyzer.run_analysis(dataframe)
+        st.session_state['analysis_result'] = result
+
+if st.session_state['analysis_result'] is not None:
+    st.write(st.session_state['analysis_result'])
 
