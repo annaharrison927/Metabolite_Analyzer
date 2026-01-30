@@ -2,6 +2,9 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import time
+
+from pandas.core.interchange.dataframe_protocol import DataFrame
+
 import MockAnalyzer
 
 if 'analysis_result' not in st.session_state:
@@ -36,7 +39,11 @@ if uploaded_file is not None:
 
 if st.checkbox('Show metabolites'):
     st.subheader('Metabolites')
-    st.write(dataframe)
+    if dataframe is None:
+        st.write('Please upload a .csv file with a list of metabolites before proceeding.')
+    else:
+        st.write(dataframe['Metabolites'])
+
 
 st.text_input("Please enter keyword(s) you would like to add to the search query "
               "(e.g.: \"Maize\" or \"Human health\"):", key="keyword")
@@ -55,10 +62,17 @@ def show_progress():
 if st.button('Click to start analysis'):
     if not agreed_to_terms:
         st.write('Please agree to the terms before proceeding.')
+    elif dataframe is None:
+        st.write('Please upload a .csv file with a list of metabolites before proceeding.')
     else:
-        result = MockAnalyzer.run_analysis(dataframe)
-        st.session_state['analysis_result'] = result
+        results = ""
+        metabolites = dataframe['Metabolites'].tolist()
+        for metabolite in metabolites:
+            result = MockAnalyzer.run_analysis(metabolite, keyword)
+            results += result
+        st.session_state['analysis_result'] = results
+        st.write(st.session_state['analysis_result'])
 
-if st.session_state['analysis_result'] is not None:
-    st.write(st.session_state['analysis_result'])
+# if st.session_state['analysis_result'] is not None:
+
 
