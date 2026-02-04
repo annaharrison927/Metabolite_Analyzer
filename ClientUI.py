@@ -67,9 +67,15 @@ if st.button('Click to start analysis'):
     else:
         results = ""
         metabolites = dataframe['Metabolites'].tolist()
-        for metabolite in metabolites:
+        latest_iteration = st.empty()
+        progress_bar = st.progress(0)
+        for i, metabolite in enumerate(metabolites):
             result = MockAnalyzer.run_analysis(metabolite, keyword)
             results += result
+            percent_completed = (i+1)/len(metabolites)
+            progress_bar.progress(percent_completed)
+            latest_iteration.text(f'{percent_completed * 100}% complete')
+        latest_iteration.text('Done!')
         st.session_state['analysis_result'] = results
         st.write(st.session_state['analysis_result'])
 
