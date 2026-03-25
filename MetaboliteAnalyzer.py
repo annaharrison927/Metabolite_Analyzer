@@ -9,29 +9,22 @@ from dotenv import load_dotenv
 from requests import Response
 from enum import Enum, auto
 from markdown_pdf import MarkdownPdf, Section
+from MyAI import MyAI
 
 # --- Configuration & Setup ---
 NCBI_BASE_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
-GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent"
 HEADERS = {'Content-Type': 'application/json'}
 MAX_ARTICLES = 100
 
 load_dotenv()
 NCBI_API_KEY = os.environ.get("NCBI_API_KEY")
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+
+model_name = "gemini-flash-latest"
+my_ai = MyAI(model_name=model_name)
 
 class Method(Enum):
     SEARCH = auto()
     FETCH = auto()
-
-def print_compliance_notice():
-    print("-" * 60)
-    print("NCBI COMPLIANCE NOTICE")
-    print("This tool uses NCBI E-utilities. By proceeding, you agree to")
-    print("NCBI's Disclaimer and Copyright notice:")
-    print("https://www.ncbi.nlm.nih.gov/About/disclaimer.html")
-    print("-" * 60)
-    print()
 
 def exponential_backoff_request(url: str, method: str = "GET", payload: dict = None, max_retries: int = 5) -> (
         requests.Response | None):
@@ -67,7 +60,7 @@ def exponential_backoff_request(url: str, method: str = "GET", payload: dict = N
     return None
 
 def get_metabolites() -> List[str]:
-    metabolite_file = pd.read_csv("metabolite_list.csv")
+    metabolite_file = pd.read_csv("metabolite_list_small.csv")
     metabolite_df = pd.DataFrame(metabolite_file)
     return metabolite_df['Metabolites'].tolist()
 
@@ -148,52 +141,9 @@ def fetch_abstracts(search_term: str) -> Tuple[str, List[str]] | None:
     combined_abstract_text = parse_xml(response)
     return combined_abstract_text.strip(), pmids
 
-
-def analyze_abstract(combined_abstract: str, analysis_task: str) -> str:
-    """
-    Sends the combined abstract content to the Gemini API for a single, consolidated analysis.
-    """
-
-    system_prompt = (
-        "You are a concise, biomedical expert. Your summary must be objective, "
-        "and synthesize the main findings from ALL provided abstracts into a single, cohesive, bulleted list. Each"
-        "bullet point should be short and to the point. CITATION RULE: You MUST cite every claim using the provided SOURCE_ID (PMID)."
-        "Format citations as [PMID: 1234567]. Following the citation, provide a link to the article in a sub-bullet as:"
-        "   *(https://pubmed.ncbi.nlm.nih.gov/1234567/)"
-        "Before your summary, create a subheading with the metabolite name (e.g.: \n## [Metabolite Name]\n)"
-        "Each bullet should be under one of the following three subheadings: ###Positive Effects, ###Negative Effects, "
-        "or ### Neutral/Context-Dependent Effects. Follow this template as a guide for formatting:"
-        "\n## [Metabolite Name]\n"
-        "\n### Positive Effects\n"
-        "* **[Affected System]**: [Observation] [[000000; 111111]].\n"
-        "    * (https://pubmed.ncbi.nlm.nih.gov/000000/)\n"
-        "    * (https://pubmed.ncbi.nlm.nih.gov/111111/)\n"
-        "\n### Negative Effects\n"
-        "\n### Neutral/Context-Dependent Effects\n"
-        "Do not repeat affected systems within your subcategories. For example, if you find multiple positive effects "
-        "on the Cardiovascular system, list all effects in one bullet. Limit bullet size to 30 words, not including"
-        "citations. Put two new line characters at the end of your summary."
-    )
-
-    full_query = (
-        f"Consolidate and address the following analysis task based on the multiple provided abstracts: {analysis_task}"
-        f"\n\nCOMBINED ABSTRACT CONTENT:\n---\n{combined_abstract}"
-    )
-
-    payload = {
-        "contents": [{"parts": [{"text": full_query}]}],
-        "systemInstruction": {"parts": [{"text": system_prompt}]}
-    }
-
-    gemini_url_with_key = f"{GEMINI_API_URL}?key={GEMINI_API_KEY}"
-
-    response = exponential_backoff_request(gemini_url_with_key, method="POST", payload=payload)
-
-    if response:
-        response_data = response.json()
-        return response_data['candidates'][0]['content']['parts'][0]['text']
-    else:
-        return "An error occurred during the Gemini API call after multiple retries."
+def analyze_abstract(analysis_task: str) -> str:
+    response = my_ai.generate_response(input_text=analysis_task)
+    return response.text
 
 def process_metabolite(metabolite, task):
     """
@@ -221,7 +171,6 @@ def write_report(report: str, file_name: str):
     pdf.save(f"{file_name}.pdf")
 
 def main():
-    print_compliance_notice()
     metabolites_to_process = get_metabolites()
     analysis_task = "positive, negative, and neutral effects of metabolite on human body systems"
     all_reports = {}
@@ -238,7 +187,7 @@ def main():
         time.sleep(15)
 
     final_report = "# Metabolite Report\n" + report_string
-    file_name = "metabolite_report4"
+    file_name = "metabolite_report_medium_size"
     write_report(final_report, file_name)
 
     end_time = time.time()
@@ -250,7 +199,7 @@ def main():
     print("=" * 60)
 
 if __name__ == "__main__":
-    if not NCBI_API_KEY or not GEMINI_API_KEY:
+    if not NCBI_API_KEY:
         print("ERROR: API keys not found. Check your .env file.")
     else:
         main()
