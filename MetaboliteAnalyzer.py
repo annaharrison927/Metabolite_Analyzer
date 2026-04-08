@@ -19,8 +19,29 @@ MAX_ARTICLES = 100
 load_dotenv()
 NCBI_API_KEY = os.environ.get("NCBI_API_KEY")
 
-model_name = "gemini-flash-latest"
-my_ai = MyAI(model_name=model_name)
+model_name = "gemini-flash-lite-latest"
+
+system_prompt = (
+    "You are a concise, biomedical expert. Your summary must be objective, "
+    "and synthesize the main findings from ALL provided abstracts into a single, cohesive, bulleted list. Each"
+    "bullet point should be short and to the point. CITATION RULE: You MUST cite every claim using the provided SOURCE_ID (PMID)."
+    "Format citations as [PMID: 1234567]. Following the citation, you must provide a link to the article in a sub-bullet as:"
+    "   *(https://pubmed.ncbi.nlm.nih.gov/1234567/)"
+    "Before your summary, create a subheading with the metabolite name (e.g.: \n## [Metabolite Name]\n)"
+    "Each bullet should be under one of the following three subheadings: ###Positive Effects, ###Negative Effects, "
+    "or ### Neutral/Context-Dependent Effects. Follow this template as a guide for formatting:"
+    "\n## [Metabolite Name]\n"
+    "\n### Positive Effects\n"
+    "* **[Affected System]**: [Observation] [000000; 111111].\n"
+    "    * (https://pubmed.ncbi.nlm.nih.gov/000000/)\n"
+    "    * (https://pubmed.ncbi.nlm.nih.gov/111111/)\n"
+    "\n### Negative Effects\n"
+    "\n### Neutral/Context-Dependent Effects\n"
+    "Do not repeat affected systems within your subcategories. For example, if you find multiple positive effects "
+    "on the Cardiovascular system, list all effects in one bullet. Limit bullet size to 30 words, not including"
+    "citations.")
+
+my_ai = MyAI(model_name=model_name,system_prompt=system_prompt)
 
 class Method(Enum):
     SEARCH = auto()
@@ -141,9 +162,9 @@ def fetch_abstracts(search_term: str) -> Tuple[str, List[str]] | None:
     combined_abstract_text = parse_xml(response)
     return combined_abstract_text.strip(), pmids
 
-def analyze_abstract(analysis_task: str) -> str:
-    response = my_ai.generate_response(input_text=analysis_task)
-    return response.text
+def analyze_abstract(combined_abstracts: str, task: str) -> str:
+    input_text = task + combined_abstracts
+    return my_ai.generate_response(input_text=input_text)
 
 def process_metabolite(metabolite, task):
     """
@@ -172,23 +193,26 @@ def write_report(report: str, file_name: str):
 
 def main():
     metabolites_to_process = get_metabolites()
-    analysis_task = "positive, negative, and neutral effects of metabolite on human body systems"
     all_reports = {}
     report_string = ""
     start_time = time.time()
 
     for metabolite in metabolites_to_process:
         print(f"\n--- Starting Analysis: {metabolite} ---\n")
+        analysis_task = (f"Report positive, negative, and neutral effects of the following metabolite on human body "
+                         f"systems: {metabolite}. Write your report based upon format in your system instructions "
+                         f"and the following abstracts:")
         report = process_metabolite(metabolite, analysis_task)
         all_reports[metabolite] = report
-        report_string = report_string + report
+        report_string = report_string + report + "\n\n"
         print(f"  > Result: {report}\n")
-        print("15-second server cooldown...\n")
-        time.sleep(15)
+        # print("15-second server cooldown...\n")
+        # time.sleep(15)
 
     final_report = "# Metabolite Report\n" + report_string
     file_name = "metabolite_report_medium_size"
-    write_report(final_report, file_name)
+    print(final_report)
+    # write_report(final_report, file_name)
 
     end_time = time.time()
 
