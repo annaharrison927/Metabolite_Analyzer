@@ -4,9 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="d836f2f4-27c6-4626-adab-ce2ac0332e9b" name="Changes" comment="Created an Enum class for the method parameter used in the create_url function. Some additional refactoring for clarity/conciseness.">
+    <list default="true" id="d836f2f4-27c6-4626-adab-ce2ac0332e9b" name="Changes" comment="Updated MyAI to use the latest library from google (genai). Using a lighter version to take less time. Need to figure out how to make the model generate bullets with links again">
+      <change afterPath="$PROJECT_DIR$/OutputTesting.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/ReportConverter.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ClientUI.py" beforeDir="false" afterPath="$PROJECT_DIR$/ClientUI.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/MetaboliteAnalyzer.py" beforeDir="false" afterPath="$PROJECT_DIR$/MetaboliteAnalyzer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -21,6 +25,37 @@
     </option>
   </component>
   <component name="Git.Settings">
+    <excluded-from-favorite>
+      <branch-storage>
+        <map>
+          <entry type="REMOTE">
+            <value>
+              <list>
+                <branch-info repo="$PROJECT_DIR$" source="origin/main" />
+              </list>
+            </value>
+          </entry>
+        </map>
+      </branch-storage>
+    </excluded-from-favorite>
+    <favorite-branches>
+      <branch-storage>
+        <map>
+          <entry type="REMOTE">
+            <value>
+              <list>
+                <branch-info repo="$PROJECT_DIR$" source="origin/Metabolite_Analyzer_v2.0" />
+              </list>
+            </value>
+          </entry>
+        </map>
+      </branch-storage>
+    </favorite-branches>
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="main" />
+      </map>
+    </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="GitHubPullRequestSearchHistory">{
@@ -35,6 +70,9 @@
     &quot;accountId&quot;: &quot;db38208a-ae61-4c81-968c-4c25a1562034&quot;
   }
 }</component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
+  </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 6
 }</component>
@@ -47,20 +85,24 @@
   &quot;keyToString&quot;: {
     &quot;ASKED_MARK_IGNORED_FILES_AS_EXCLUDED&quot;: &quot;true&quot;,
     &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;Python tests.Python tests for test_analyzer.test_valid_ai_response.executor&quot;: &quot;Debug&quot;,
     &quot;Python.MetaboliteAnalyzer.executor&quot;: &quot;Run&quot;,
+    &quot;Python.MockAnalyzer.executor&quot;: &quot;Run&quot;,
+    &quot;Python.OutputTesting.executor&quot;: &quot;Run&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;Metabolite__Analyzer__v2.0&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
     &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
     &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyIntegratedToolsModulesConfigurable&quot;,
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
 }</component>
-  <component name="RunManager">
+  <component name="RunManager" selected="Python.MetaboliteAnalyzer">
     <configuration name="MetaboliteAnalyzer" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="MetaboliteAnalyzer" />
       <option name="ENV_FILES" value="" />
@@ -84,9 +126,74 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
+    <configuration name="MockAnalyzer" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="MetaboliteAnalyzer" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/MockAnalyzer.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="OutputTesting" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="MetaboliteAnalyzer" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/OutputTesting.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="Python tests for test_analyzer.test_valid_ai_response" type="tests" factoryName="Autodetect" temporary="true" nameIsGenerated="true">
+      <module name="MetaboliteAnalyzer" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;test_analyzer.test_valid_ai_response&quot;" />
+      <option name="_new_targetType" value="&quot;PYTHON&quot;" />
+      <method v="2" />
+    </configuration>
     <recent_temporary>
       <list>
         <item itemvalue="Python.MetaboliteAnalyzer" />
+        <item itemvalue="Python tests.Python tests for test_analyzer.test_valid_ai_response" />
+        <item itemvalue="Python.MockAnalyzer" />
+        <item itemvalue="Python.OutputTesting" />
       </list>
     </recent_temporary>
   </component>
@@ -112,7 +219,34 @@
       <workItem from="1767801722991" duration="8737000" />
       <workItem from="1767897542067" duration="815000" />
       <workItem from="1767973923918" duration="6606000" />
-      <workItem from="1768409105257" duration="2716000" />
+      <workItem from="1768409105257" duration="10375000" />
+      <workItem from="1768580301478" duration="6449000" />
+      <workItem from="1768600266683" duration="19000" />
+      <workItem from="1769017312832" duration="4777000" />
+      <workItem from="1769051007418" duration="916000" />
+      <workItem from="1769184947793" duration="904000" />
+      <workItem from="1769622958370" duration="7528000" />
+      <workItem from="1769632538568" duration="13000" />
+      <workItem from="1769789643265" duration="6984000" />
+      <workItem from="1769823048352" duration="41000" />
+      <workItem from="1770048585529" duration="1025000" />
+      <workItem from="1770074503063" duration="2625000" />
+      <workItem from="1770225474260" duration="5464000" />
+      <workItem from="1770394763799" duration="513000" />
+      <workItem from="1770429994398" duration="8000" />
+      <workItem from="1773076569317" duration="3618000" />
+      <workItem from="1773853860090" duration="4781000" />
+      <workItem from="1774287210122" duration="713000" />
+      <workItem from="1774287942523" duration="2538000" />
+      <workItem from="1774460837083" duration="1328000" />
+      <workItem from="1774553001037" duration="583000" />
+      <workItem from="1774625942659" duration="7739000" />
+      <workItem from="1775499111171" duration="2003000" />
+      <workItem from="1775512135243" duration="13000" />
+      <workItem from="1775672138816" duration="1679000" />
+      <workItem from="1775689588700" duration="9000" />
+      <workItem from="1775837819449" duration="4000000" />
+      <workItem from="1776095938284" duration="3722000" />
     </task>
     <task id="LOCAL-00001" summary="Initial commit">
       <option name="closed" value="true" />
@@ -154,11 +288,126 @@
       <option name="project" value="LOCAL" />
       <updated>1767979527128</updated>
     </task>
-    <option name="localTasksCounter" value="6" />
+    <task id="LOCAL-00006" summary="Added more details to the system_prompt. The output of the LLM is now more consistent, but more prone to hitting 429 errors if run too many times in a short period of time. Also added a 15-second cooldown between analysis for each metabolite">
+      <option name="closed" value="true" />
+      <created>1768412026482</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1768412026482</updated>
+    </task>
+    <task id="LOCAL-00007" summary="Script now writes the final report to .md file">
+      <option name="closed" value="true" />
+      <created>1768420058394</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1768420058394</updated>
+    </task>
+    <task id="LOCAL-00008" summary="Edited system prompt to make sure that metabolite headings are created. Added additional instructions to reduce redundancy and increase conciseness in report.">
+      <option name="closed" value="true" />
+      <created>1768585129907</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1768585129907</updated>
+    </task>
+    <task id="LOCAL-00009" summary="Input now comes from a csv file instead of a hard-coded list.">
+      <option name="closed" value="true" />
+      <created>1768588115763</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1768588115763</updated>
+    </task>
+    <task id="LOCAL-00010" summary="Created a function that writes the final result to a pdf">
+      <option name="closed" value="true" />
+      <created>1768588780179</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1768588780179</updated>
+    </task>
+    <task id="LOCAL-00011" summary="Edited the parse_xml function to filter out duplicate articles.">
+      <option name="closed" value="true" />
+      <created>1769019095983</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1769019095987</updated>
+    </task>
+    <task id="LOCAL-00012" summary="Created the skeleton for an interactive webpage using Streamlit">
+      <option name="closed" value="true" />
+      <created>1769623214815</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1769623214815</updated>
+    </task>
+    <task id="LOCAL-00013" summary="Added a &quot;How to use this tool&quot; expander. Also added NCBI compliance notice and a checkmark to agree to terms.">
+      <option name="closed" value="true" />
+      <created>1769627234385</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1769627234397</updated>
+    </task>
+    <task id="LOCAL-00014" summary="Incorporated session_state variable so that results don't disappear when a user clicks a widget">
+      <option name="closed" value="true" />
+      <created>1769630718230</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1769630718230</updated>
+    </task>
+    <task id="LOCAL-00015" summary="Added more error handling. Moved looping through metabolites to the Client to make showing a progress bar to the user possible.">
+      <option name="closed" value="true" />
+      <created>1769799019877</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1769799019877</updated>
+    </task>
+    <task id="LOCAL-00016" summary="Implemented a progress bar">
+      <option name="closed" value="true" />
+      <created>1770227517484</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1770227517484</updated>
+    </task>
+    <task id="LOCAL-00017" summary="First commit of new branch. Created a new MyAI class that will handle responses to queries. Changed the model that's used so that it always points to the latest flash model">
+      <option name="closed" value="true" />
+      <created>1774463202019</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1774463202019</updated>
+    </task>
+    <task id="LOCAL-00018" summary="Updated MyAI to use the latest library from google (genai). Using a lighter version to take less time. Need to figure out how to make the model generate bullets with links again">
+      <option name="closed" value="true" />
+      <created>1775672890153</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1775672890153</updated>
+    </task>
+    <option name="localTasksCounter" value="19" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Initial commit" />
@@ -166,9 +415,36 @@
     <MESSAGE value="Incorporated ID, title, and author extraction when fetching articles. LLM is now required to include citations with each claim." />
     <MESSAGE value="Edited the exponential_backoff_request helper function so that it can also be used for rate limiting with LLM requests. Code takes slightly longer to run, but there is now less risk of getting 429 errors." />
     <MESSAGE value="Refactored code for readability. Deleted unnecessary print statements and comments, added more block comments to each method. Made create_url and parse_xml helper methods for the fetch_abstracts method." />
-    <option name="LAST_COMMIT_MESSAGE" value="Refactored code for readability. Deleted unnecessary print statements and comments, added more block comments to each method. Made create_url and parse_xml helper methods for the fetch_abstracts method." />
+    <MESSAGE value="Added more details to the system_prompt. The output of the LLM is now more consistent, but more prone to hitting 429 errors if run too many times in a short period of time. Also added a 15-second cooldown between analysis for each metabolite" />
+    <MESSAGE value="Script now writes the final report to .md file" />
+    <MESSAGE value="Edited system prompt to make sure that metabolite headings are created. Added additional instructions to reduce redundancy and increase conciseness in report." />
+    <MESSAGE value="Input now comes from a csv file instead of a hard-coded list." />
+    <MESSAGE value="Created a function that writes the final result to a pdf" />
+    <MESSAGE value="Edited the parse_xml function to filter out duplicate articles." />
+    <MESSAGE value="Created the skeleton for an interactive webpage using Streamlit" />
+    <MESSAGE value="Added a &quot;How to use this tool&quot; expander. Also added NCBI compliance notice and a checkmark to agree to terms." />
+    <MESSAGE value="Incorporated session_state variable so that results don't disappear when a user clicks a widget" />
+    <MESSAGE value="Added more error handling. Moved looping through metabolites to the Client to make showing a progress bar to the user possible." />
+    <MESSAGE value="Implemented a progress bar" />
+    <MESSAGE value="First commit of new branch. Created a new MyAI class that will handle responses to queries. Changed the model that's used so that it always points to the latest flash model" />
+    <MESSAGE value="Updated MyAI to use the latest library from google (genai). Using a lighter version to take less time. Need to figure out how to make the model generate bullets with links again" />
+    <option name="LAST_COMMIT_MESSAGE" value="Updated MyAI to use the latest library from google (genai). Using a lighter version to take less time. Need to figure out how to make the model generate bullets with links again" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/test_analyzer.py</url>
+          <line>5</line>
+          <option name="timeStamp" value="7" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/MetaboliteAnalyzer$MetaboliteAnalyzer.coverage" NAME="MetaboliteAnalyzer Coverage Results" MODIFIED="1768411630350" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/MetaboliteAnalyzer$MockAnalyzer.coverage" NAME="MockAnalyzer Coverage Results" MODIFIED="1769627542599" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/MetaboliteAnalyzer$MetaboliteAnalyzer.coverage" NAME="MetaboliteAnalyzer Coverage Results" MODIFIED="1775501158194" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/MetaboliteAnalyzer$.coverage" NAME=" Coverage Results" MODIFIED="1774463505370" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/MetaboliteAnalyzer$OutputTesting.coverage" NAME="OutputTesting Coverage Results" MODIFIED="1768587556204" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
