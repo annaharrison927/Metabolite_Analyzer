@@ -1,11 +1,7 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import time
-
-from pandas.core.interchange.dataframe_protocol import DataFrame
-
-import MockAnalyzer
+import MetaboliteAnalyzer
 
 if 'analysis_result' not in st.session_state:
     st.session_state['analysis_result'] = None
@@ -70,7 +66,7 @@ if st.button('Click to start analysis'):
         latest_iteration = st.empty()
         progress_bar = st.progress(0)
         for i, metabolite in enumerate(metabolites):
-            result = MockAnalyzer.run_analysis(metabolite, keyword)
+            result = MetaboliteAnalyzer.run_analysis(metabolite, keyword)
             results += result
             percent_completed = (i+1)/len(metabolites)
             progress_bar.progress(percent_completed)
