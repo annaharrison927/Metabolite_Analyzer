@@ -10,7 +10,20 @@ class MyAI:
         self.api_key = os.environ.get("GEMINI_API_KEY")
         self.model_name = model_name
         self.system_prompt = system_prompt
-        self.client = genai.Client(api_key=self.api_key)
+
+        # Configure automatic retries for 503 and 429 errors
+        retry_config = types.HttpRetryOptions(
+            attempts=5,  # Try 5 times before giving up
+            initial_delay=2.0,  # Start with a 2-second wait
+            max_delay=60.0,  # Never wait more than a minute
+            exp_base=2.0  # Double the wait time after each failure
+        )
+
+        # Apply these options to the client
+        self.client = genai.Client(
+            api_key=self.api_key,
+            http_options=types.HttpOptions(retry_options=retry_config)
+        )
 
     def generate_response(self, input_text: str):
         config = types.GenerateContentConfig(
