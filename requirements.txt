@@ -1,5 +1,7 @@
 protobuf
+pandas
 streamlit
 markdown-pdf
 requests
 python-dotenv
+google-genai
