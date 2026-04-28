@@ -3,11 +3,10 @@ import pandas as pd
 import time
 import MetaboliteAnalyzer
 
-if 'analysis_result' not in st.session_state:
-    st.session_state['analysis_result'] = None
-
 st.set_page_config(page_title="Metabolite AI Research Assistant", layout="wide")
 st.title('Metabolite Analyzer')
+if 'analysis_result' not in st.session_state:
+    st.session_state['analysis_result'] = None
 
 with st.expander("How to use this tool"):
     left_column, right_column = st.columns([2,1],
