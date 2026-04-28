@@ -4,6 +4,7 @@ import os
 import time
 import random
 import pandas as pd
+import tempfile
 from typing import List, Tuple
 from dotenv import load_dotenv
 from requests import Response
@@ -188,6 +189,26 @@ def write_report(report: str, file_name: str):
     pdf = MarkdownPdf()
     pdf.add_section(Section(markdown_content))
     pdf.save(f"{file_name}.pdf")
+
+def get_pdf_bytes(report_text: str):
+    """Generates a PDF from markdown and returns the raw bytes."""
+    pdf = MarkdownPdf()
+    pdf.add_section(Section(report_text))
+
+    # Permission fix: Use a manual path to ensure file is closed
+    fd, temp_path = tempfile.mkstemp(suffix=".pdf")
+    try:
+        os.close(fd)  # Close the file descriptor immediately
+        pdf.save(temp_path)  # Let the library write to the closed path
+
+        with open(temp_path, "rb") as f:
+            pdf_bytes = f.read()
+
+        return pdf_bytes
+    finally:
+        # Now it is safe to remove because no process is holding the file
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
 
 def run_analysis(metabolite:str, keyword: str):
     if not NCBI_API_KEY:
