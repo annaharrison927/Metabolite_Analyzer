@@ -55,26 +55,43 @@ def show_progress():
         bar.progress(i + 1)
         time.sleep(0.1)
 
+if st.session_state['analysis_result']:
+    st.divider()
+    try:
+        pdf_data = MetaboliteAnalyzer.get_pdf_bytes(st.session_state['analysis_result'])
+
+        st.download_button(
+            label="Download PDF Report",
+            data=pdf_data,
+            file_name="metabolite_report.pdf",
+            mime="application/pdf"
+        )
+        if st.checkbox("Show report"):
+            st.markdown(st.session_state['analysis_result'])  # Shows report
+    except Exception as e:
+        st.error(f"Error generating download: {e}")
+    st.divider()
+
 if st.button('Click to start analysis'):
     if not agreed_to_terms:
         st.write('Please agree to the terms before proceeding.')
     elif dataframe is None:
         st.write('Please upload a .csv file with a list of metabolites before proceeding.')
     else:
-        results = ""
+        results = "# Metabolite Report\n"
         metabolites = dataframe['Metabolites'].tolist()
-        latest_iteration = st.empty()
+        progress_text = st.empty()
         progress_bar = st.progress(0)
         for i, metabolite in enumerate(metabolites):
             result = MetaboliteAnalyzer.run_analysis(metabolite, keyword)
             results += result
             percent_completed = (i+1)/len(metabolites)
             progress_bar.progress(percent_completed)
-            latest_iteration.text(f'{percent_completed * 100}% complete')
-        latest_iteration.text('Done!')
+            progress_text.text(f'{percent_completed * 100}% complete')
+        progress_text.text('Done!')
         st.session_state['analysis_result'] = results
-        st.write(st.session_state['analysis_result'])
+        st.rerun()
 
-# if st.session_state['analysis_result'] is not None:
+
 
 
