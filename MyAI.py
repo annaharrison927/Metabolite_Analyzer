@@ -31,9 +31,19 @@ class MyAI:
             temperature=0.3
         )
 
-        response = self.client.models.generate_content(
-            model=self.model_name,
-            contents=input_text,
-            config=config
-        )
-        return response.text
+        max_attempts = 5
+        for attempt in range(max_attempts):
+            try:
+                response = self.client.models.generate_content(
+                    model=self.model_name,
+                    contents=input_text,
+                    config=config
+                )
+                if not response or not hasattr(response, "text") or not response.text:
+                    raise ValueError("Empty or invalid response from model")
+                return response.text
+            except Exception as e:
+                delay = (2 ** attempt)
+                print(f"Attempt {attempt+1} failed: {e}. Retrying in {delay}s...")
+
+        raise RuntimeError("Model failed after multiple attempts")
