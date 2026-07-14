@@ -16,6 +16,10 @@ from MyAI import MyAI
 NCBI_BASE_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
 HEADERS = {'Content-Type': 'application/json'}
 MAX_ARTICLES = 100
+AMINO_ACIDS = {'Ala', 'Arg', 'Asn', 'Asp', 'Cys',
+               'Glu', 'Gln', 'Gly', 'His', 'Ile',
+               'Leu', 'Lys', 'Met', 'Phe', 'Pro',
+               'Ser', 'Thr', 'Trp', 'Tyr', 'Val'}
 
 load_dotenv()
 NCBI_API_KEY = os.environ.get("NCBI_API_KEY")
@@ -100,9 +104,40 @@ def create_url(query_value: str, method: Method = Method.SEARCH) -> str:
             f"&retmode=json&retmax={MAX_ARTICLES}&sort=relevance{api_key_param}"
         )
 
-def parse_xml(response: Response) -> str:
+def is_peptide(metabolite: str) -> bool:
+    return all(part in AMINO_ACIDS
+               for part in metabolite.split("-"))
+
+def normalize_peptide_notation(abstract:str) -> str:
+    normalized = abstract
+    normalized = normalized.replace("·", "-")
+    normalized = normalized.replace("–", "-")
+    normalized = normalized.replace("—", "-")
+    normalized = normalized.replace("−", "-")
+    return normalized
+
+# Check if abstracts contain peptide of interest
+def is_valid_abstract(abstract: str, peptide: str) -> bool:
+    parts = abstract.split(peptide)
+    beg = parts[0]
+    end = parts[-1]
+
+    if len(parts) == 2:
+        if (beg == "" or beg[-1]) != "-" and (end == "" or end[0] != "-"):
+            return True
+        return False
+    else:
+        for i in range(len(parts)-1):
+            front = parts[i]
+            back = parts[i+1]
+            if front[-1] != "-" and back[0] != "-":
+                return True
+        return False
+
+def build_abstract_corpus(response: Response, metabolite:str) -> str:
     """
     Extracts info from each article to create a string of combined abstracts
+    :param metabolite: str
     :param response: Response
     :return: str
     """
@@ -127,22 +162,25 @@ def parse_xml(response: Response) -> str:
 
         abstract_text = ""
         abstract_elements = article.findall('.//AbstractText')
+        peptide = is_peptide(metabolite)
         for element in abstract_elements:
             if element.text:
                 abstract_text += element.text + " "
-
+        if peptide:
+            normalized_abstract = normalize_peptide_notation(abstract_text)
+            if not is_valid_abstract(normalized_abstract, metabolite):
+                continue
         if abstract_text:
             combined_abstract_text += f"\n\n--- ARTICLE PMID {article_pmid} | AUTHOR: {author}\nTITLE: {title}---\n{abstract_text.strip()}"
 
     return combined_abstract_text
 
-
-def fetch_abstracts(search_term: str) -> Tuple[str, List[str]] | None:
+def fetch_abstracts(metabolite: str) -> Tuple[str, List[str]] | None:
     """
     Executes ESearch and EFetch to retrieve abstracts for the top MAX_ARTICLES results.
     Returns a single concatenated abstract string and a list of PMIDs.
     """
-    esearch_url = create_url(search_term, Method.SEARCH)
+    esearch_url = create_url(metabolite, Method.SEARCH)
     response = exponential_backoff_request(esearch_url)
     if not response:
         return None
@@ -158,7 +196,7 @@ def fetch_abstracts(search_term: str) -> Tuple[str, List[str]] | None:
     if not response:
         return None
 
-    combined_abstract_text = parse_xml(response)
+    combined_abstract_text = build_abstract_corpus(response, metabolite)
     return combined_abstract_text.strip(), pmids
 
 def analyze_abstract(combined_abstracts: str, task: str) -> str:
@@ -210,7 +248,7 @@ def get_pdf_bytes(report_text: str):
         if os.path.exists(temp_path):
             os.remove(temp_path)
 
-def run_analysis(metabolite:str, keyword: str):
+def analyze_metabolite(metabolite:str, keyword: str):
     if not NCBI_API_KEY:
         return "ERROR: API keys not found. Check your .env file."
     else:
@@ -229,7 +267,7 @@ def run_analysis(metabolite:str, keyword: str):
         return report_string
 
 def main(metabolite: str, keyword: str):
-    return run_analysis(metabolite, keyword)
+    return analyze_metabolite(metabolite, keyword)
 
 if __name__ == "__main__":
     pass

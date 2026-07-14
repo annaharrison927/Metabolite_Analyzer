@@ -82,7 +82,7 @@ if st.button('Click to start analysis'):
         progress_text = st.empty()
         progress_bar = st.progress(0)
         for i, metabolite in enumerate(metabolites):
-            result = MetaboliteAnalyzer.run_analysis(metabolite, keyword)
+            result = MetaboliteAnalyzer.analyze_metabolite(metabolite, keyword)
             results += result
             percent_completed = (i+1)/len(metabolites)
             progress_bar.progress(percent_completed)
