@@ -183,18 +183,18 @@ def fetch_abstracts(metabolite: str) -> Tuple[str, List[str]] | None:
     esearch_url = create_url(metabolite, Method.SEARCH)
     response = exponential_backoff_request(esearch_url)
     if not response:
-        return None
+        return "", []
 
     search_data = response.json()
     pmids = search_data['esearchresult']['idlist']
     if not pmids:
-        return None
+        return "", []
 
     pmid_list_str = ",".join(pmids)
     efetch_url = create_url(pmid_list_str, Method.FETCH)
     response = exponential_backoff_request(efetch_url)
     if not response:
-        return None
+        return "", []
 
     combined_abstract_text = build_abstract_corpus(response, metabolite)
     return combined_abstract_text.strip(), pmids
@@ -210,8 +210,10 @@ def process_metabolite(metabolite, task):
     try:
         combined_abstract, pmids = fetch_abstracts(metabolite)
         if not combined_abstract:
-            return f"No abstracts found for {metabolite}."
-
+            return (f"\n## {metabolite}\n"
+                    f"No PubMed publications were found for the metabolite \"{metabolite}\" using the current search "
+                    f"strategy. This does not necessarily indicate that the metabolite has no biological effects; only "
+                    f"that no matching publications were retrieved from PubMed.\n")
         report = analyze_abstract(combined_abstract, task)
         return report
 
@@ -256,14 +258,9 @@ def analyze_metabolite(metabolite:str, keyword: str):
                          f"{metabolite}. Write your report based upon format in your system instructions "
                          f"and the following abstracts:")
         report_string = ""
-        start_time = time.time()
-
         report = process_metabolite(metabolite, analysis_task)
         report_string = report_string + report + "\n"
         time.sleep(15)
-
-        end_time = time.time()
-
         return report_string
 
 def main(metabolite: str, keyword: str):
