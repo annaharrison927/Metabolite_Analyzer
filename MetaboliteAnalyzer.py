@@ -260,7 +260,7 @@ def analyze_metabolite(metabolite:str, keyword: str):
         report_string = ""
         report = process_metabolite(metabolite, analysis_task)
         report_string = report_string + report + "\n"
-        time.sleep(15)
+        # time.sleep(15)
         return report_string
 
 def main(metabolite: str, keyword: str):
