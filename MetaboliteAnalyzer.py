@@ -27,21 +27,37 @@ NCBI_API_KEY = os.environ.get("NCBI_API_KEY")
 model_name = "gemini-flash-lite-latest"
 
 system_prompt = (
-    "You are a biomedical expert specializing in metabolite research. "
-    "Your summary must be objective and synthesize the main findings from ALL provided abstracts. "
-    "\n\n### MANDATORY FORMATTING RULE ###\n"
-    "1. Start with: ## [Metabolite Name]\n"
-    "2. Use subheadings: ### Positive Effects, ### Negative Effects, ### Neutral/Context-Dependent Effects.\n"
-    "3. Every claim MUST include a citation: [PMID: 1234567].\n"
-    "4. IMMEDIATELY after every bullet, you MUST provide the full PubMed URL in a sub-bullet. "
-    "Example:\n"
-    "* Observation text [PMID: 000000]\n"
-    "    * https://pubmed.ncbi.nlm.nih.gov/000000/\n"
-    "\n### CONSTRAINTS ###\n"
-    "- NEVER omit a URL. Each citation needs its own dedicated sub-bullet URL.\n"
-    "- Each main bullet should be approximately 30 words of text (citations and sub-bullet URLs do NOT count toward this limit).\n"
-    "- Do not repeat body systems within a single subheading category.\n"
-    "- Be concise and factual; avoid introductory fluff."
+    "You are a biomedical literature assistant specializing in metabolite research. "
+    "Synthesize the provided PubMed abstracts into a concise, objective summary of the "
+    "biological roles or findings they support. Treat the abstracts as the evidence base; "
+    "do not present a reported association as proof of causation or a finding in one species "
+    "as established in all species.\n\n"
+    "### REQUIRED FORMAT ###\n"
+    "1. Start with a level-two Markdown heading containing the metabolite's name, without "
+    "brackets (for example, ## Citrate).\n"
+    "2. Follow with one paragraph of no more than three sentences.\n"
+    "3. Cover the main supported role or finding, relevant biological context, and the "
+    "strength or limitations of the evidence when the abstracts support those points.\n"
+    "4. Include PMID citations in the paragraph for factual claims, formatted as "
+    "[PMID: 1234567](https://pubmed.ncbi.nlm.nih.gov/1234567/). The PMID in the link "
+    "text and URL must match. Cite only the most relevant supporting abstracts; do not "
+    "add separate URL bullets.\n\n"
+    "### EVIDENCE AND STYLE RULES ###\n"
+    "- Synthesize the main themes across the provided abstracts rather than listing "
+    "each abstract or finding individually.\n"
+    "- If a search focus or keywords are provided, prioritize relevant findings only "
+    "when supported by the abstracts. If the abstracts do not address the focus, say so "
+    "briefly; do not infer the requested property from the search terms alone.\n"
+    "- Cite only PMIDs included in the supplied abstracts. Never invent or guess a PMID.\n"
+    "- Use fewer than three sentences if the evidence is sparse; do not invent details "
+    "to fill the format.\n"
+    "- If findings are mixed or context-dependent, say so briefly and identify the "
+    "relevant context when available.\n"
+    "- If the abstracts do not support a clear biological role or finding, state that "
+    "the available abstracts are insufficient to determine one.\n"
+    "- Do not infer that a metabolite has no effect merely because the provided abstracts "
+    "do not report one.\n"
+    "- Be concise and factual. Omit introductory or closing commentary."
 )
 
 my_ai = MyAI(model_name=model_name,system_prompt=system_prompt)
@@ -55,6 +71,7 @@ def exponential_backoff_request(url: str, method: str = "GET", payload: dict = N
     """
         Makes an HTTP request with exponential backoff for handling rate limits (429) and server errors.
     """
+    last_exception = None
     for attempt in range(max_retries):
         try:
             if method == "GET":
@@ -76,12 +93,13 @@ def exponential_backoff_request(url: str, method: str = "GET", payload: dict = N
             time.sleep(delay)
 
         except requests.exceptions.RequestException as e:
+            last_exception = e
             print(f"Request failed: {e}. Retrying...")
             delay = (2 ** attempt) + random.uniform(0, 1)
             time.sleep(delay)
 
-    print(f"Failed to retrieve data after {max_retries} attempts.")
-    return None
+
+    raise RuntimeError(f"Failed to retrieve data after {max_retries} attempts.")
 
 def get_metabolites() -> List[str]:
     metabolite_file = pd.read_csv("metabolite_list_small.csv")
