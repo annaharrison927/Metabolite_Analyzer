@@ -272,9 +272,13 @@ def analyze_metabolite(metabolite:str, keyword: str):
     if not NCBI_API_KEY:
         return "ERROR: API keys not found. Check your .env file."
     else:
-        analysis_task = (f"Report positive, negative, and neutral effects of the following metabolite on {keyword}: "
-                         f"{metabolite}. Write your report based upon format in your system instructions "
-                         f"and the following abstracts:")
+        analysis_task = (
+                f"Summarize the biological roles or findings supported by the provided PubMed "
+                f"abstracts for the metabolite {metabolite}."
+                + (f" Focus on this search topic: {keyword}." if keyword and keyword.strip() else "")
+                + " Follow the required format and evidence rules in your system instructions. "
+                  "Use only the provided abstracts as evidence."
+        )
         report_string = ""
         report = process_metabolite(metabolite, analysis_task)
         report_string = report_string + report + "\n"
