@@ -5,6 +5,8 @@ import time
 import random
 import pandas as pd
 import tempfile
+import re
+from collections.abc import Iterable
 from typing import List, Tuple
 from dotenv import load_dotenv
 from requests import Response
@@ -29,32 +31,34 @@ model_name = "gemini-flash-lite-latest"
 system_prompt = (
     "You are a biomedical literature assistant specializing in metabolite research. "
     "Synthesize the provided PubMed abstracts into a concise, objective summary of the "
-    "biological roles or findings they support. Treat the abstracts as the evidence base; "
+    "biological function of each metabolite. Treat the abstracts as the evidence base; "
     "do not present a reported association as proof of causation or a finding in one species "
     "as established in all species.\n\n"
     "### REQUIRED FORMAT ###\n"
     "1. Start with a level-two Markdown heading containing the metabolite's name, without "
     "brackets (for example, ## Citrate).\n"
-    "2. Follow with one paragraph of no more than three sentences.\n"
-    "3. Cover the main supported role or finding, relevant biological context, and the "
-    "strength or limitations of the evidence when the abstracts support those points.\n"
-    "4. Include PMID citations in the paragraph for factual claims, formatted as "
-    "[PMID: 1234567](https://pubmed.ncbi.nlm.nih.gov/1234567/). The PMID in the link "
-    "text and URL must match. Cite only the most relevant supporting abstracts; do not "
-    "add separate URL bullets.\n\n"
+    "2. Follow with exactly one concise sentence.\n"
+    "3. In that sentence, summarize the most relevant metabolite functions found through your research.\n"
+    "4. Include one to three plain-text PMID citations only when they directly support "
+    "a metabolite function described in the sentence, using this format: [PMID: 1234567].\n\n"
+    "- Cite only abstracts that directly support a relevant function. Do not cite abstracts "
+    "merely because they were provided, and never list PMIDs without an associated claim.\n"
+    "- If multiple abstracts support a relevant function, use a separate citation for each source"
+    "(e.g., [PMID: 27090191], [PMID: 2382591])"
+    "- If the abstracts do not support a function relevant to the search focus, state that "
+    "briefly in the single sentence and include no citations (e.g., The provided abstracts do "
+    "not contain biological functions specifically addressing {keyword} in relation to {metabolite}.)\n"
     "### EVIDENCE AND STYLE RULES ###\n"
-    "- Synthesize the main themes across the provided abstracts rather than listing "
-    "each abstract or finding individually.\n"
+    "- Synthesize the main relevant themes across the abstracts rather than listing "
+    "individual findings or abstracts.\n"
     "- If a search focus or keywords are provided, prioritize relevant findings only "
-    "when supported by the abstracts. If the abstracts do not address the focus, say so "
-    "briefly; do not infer the requested property from the search terms alone.\n"
-    "- Cite only PMIDs included in the supplied abstracts. Never invent or guess a PMID.\n"
-    "- Use fewer than three sentences if the evidence is sparse; do not invent details "
-    "to fill the format.\n"
-    "- If findings are mixed or context-dependent, say so briefly and identify the "
-    "relevant context when available.\n"
-    "- If the abstracts do not support a clear biological role or finding, state that "
-    "the available abstracts are insufficient to determine one.\n"
+    "when supported by the abstracts. If they do not address the focus, state this "
+    "concisely; do not infer the requested property from the search terms alone.\n"
+    "- Never invent or guess a PMID or other detail.\n"
+    "- If findings are mixed or context-dependent, convey the key qualification briefly "
+    "within the sentence.\n"
+    "- If the abstracts do not support a clear biological role or finding, say so in one "
+    "sentence rather than inventing a conclusion.\n"
     "- Do not infer that a metabolite has no effect merely because the provided abstracts "
     "do not report one.\n"
     "- Be concise and factual. Omit introductory or closing commentary."
@@ -221,6 +225,32 @@ def analyze_abstract(combined_abstracts: str, task: str) -> str:
     input_text = task + combined_abstracts
     return my_ai.generate_response(input_text=input_text)
 
+def link_valid_pmids(text: str, pmids: Iterable[str]) -> str:
+    """Link plain PMID citations when their IDs are in the supplied PMID list."""
+
+    valid_pmids = {str(pmid).strip() for pmid in pmids}
+    citation_pattern = re.compile(
+        r"\[((?:PMID:\s*\d+)(?:\s*,\s*PMID:\s*\d+)*)\](?!\s*\()",
+        re.IGNORECASE,
+    )
+
+    def replace_group(match: re.Match) -> str:
+        citations = re.findall(r"PMID:\s*(\d+)", match.group(1), re.IGNORECASE)
+        linked_citations = []
+
+        for pmid in citations:
+            citation = f"[PMID: {pmid}]"
+            if pmid in valid_pmids:
+                citation = (
+                    f"[PMID: {pmid}]"
+                    f"(https://pubmed.ncbi.nlm.nih.gov/{pmid}/)"
+                )
+            linked_citations.append(citation)
+
+        return ", ".join(linked_citations)
+
+    return citation_pattern.sub(replace_group, text)
+
 def process_metabolite(metabolite, task):
     """
     Orchestrates the full flow for a single metabolite.
@@ -233,7 +263,7 @@ def process_metabolite(metabolite, task):
                     f"strategy. This does not necessarily indicate that the metabolite has no biological effects; only "
                     f"that no matching publications were retrieved from PubMed.\n")
         report = analyze_abstract(combined_abstract, task)
-        return report
+        return link_valid_pmids(report, pmids)
 
     except Exception as e:
         return f"Error processing {metabolite}: {str(e)}"
