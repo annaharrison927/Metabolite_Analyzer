@@ -5,8 +5,8 @@ import MetaboliteAnalyzer
 
 st.set_page_config(page_title="Metabolite AI Research Assistant", layout="wide")
 st.title('Metabolite Analyzer')
-if 'analysis_result' not in st.session_state:
-    st.session_state['analysis_result'] = None
+if 'analysis_results' not in st.session_state:
+    st.session_state['analysis_results'] = None
 
 with st.expander("How to use this tool"):
     left_column, right_column = st.columns([2,1],
@@ -54,19 +54,36 @@ def show_progress():
         bar.progress(i + 1)
         time.sleep(0.1)
 
-if st.session_state['analysis_result']:
+if st.session_state['analysis_results']:
     st.divider()
     try:
-        pdf_data = MetaboliteAnalyzer.get_pdf_bytes(st.session_state['analysis_result'])
-
-        st.download_button(
-            label="Download PDF Report",
-            data=pdf_data,
-            file_name="metabolite_report.pdf",
-            mime="application/pdf"
+        output_format = st.selectbox("Output format", ["PDF", "CSV"], key="output_format")
+        report_markdown = MetaboliteAnalyzer.build_markdown_report(
+            st.session_state['analysis_results']
         )
+        if output_format == "PDF":
+            report_data = MetaboliteAnalyzer.get_pdf_bytes(report_markdown)
+            st.download_button(
+                label="Download PDF Report",
+                data=report_data,
+                file_name="metabolite_report.pdf",
+                mime="application/pdf"
+            )
+        else:
+            report_data = MetaboliteAnalyzer.get_csv_bytes(
+                st.session_state['analysis_results']
+            )
+            st.download_button(
+                label="Download CSV Report",
+                data=report_data,
+                file_name="metabolite_report.csv",
+                mime="text/csv"
+            )
         if st.checkbox("Show report"):
-            st.markdown(st.session_state['analysis_result'])  # Shows report
+            if output_format == "PDF":
+                st.markdown(report_markdown)
+            else:
+                st.dataframe(pd.DataFrame(st.session_state['analysis_results']))
     except Exception as e:
         st.error(f"Error generating download: {e}")
     st.divider()
@@ -77,18 +94,18 @@ if st.button('Click to start analysis'):
     elif dataframe is None:
         st.write('Please upload a .csv file with a list of metabolites before proceeding.')
     else:
-        results = "# Metabolite Report\n"
+        results = []
         metabolites = dataframe['Metabolites'].tolist()
         progress_text = st.empty()
         progress_bar = st.progress(0)
         for i, metabolite in enumerate(metabolites):
             result = MetaboliteAnalyzer.analyze_metabolite(metabolite, keyword)
-            results += result
+            results.append(result)
             percent_completed = (i+1)/len(metabolites)
             progress_bar.progress(percent_completed)
             progress_text.text(f'{percent_completed * 100}% complete')
         progress_text.text('Done!')
-        st.session_state['analysis_result'] = results
+        st.session_state['analysis_results'] = results
         st.rerun()
 
 

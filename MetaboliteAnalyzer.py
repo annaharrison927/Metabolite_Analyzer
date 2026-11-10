@@ -6,6 +6,8 @@ import random
 import pandas as pd
 import tempfile
 import re
+import csv
+import io
 from collections.abc import Iterable
 from typing import List, Tuple
 from dotenv import load_dotenv
@@ -36,16 +38,14 @@ system_prompt = (
     "do not present a reported association as proof of causation or a finding in one species "
     "as established in all species.\n\n"
     "### REQUIRED FORMAT ###\n"
-    "1. Start with a level-two Markdown heading containing the metabolite's name, without "
-    "brackets (for example, ## Citrate).\n"
-    "2. Follow with exactly one concise sentence.\n"
-    "3. In that sentence, summarize the most relevant metabolite functions found through your research.\n"
-    "4. Include one to three plain-text PMID citations only when they directly support "
+    "Return exactly one concise sentence and no heading or other commentary.\n"
+    "Summarize the most relevant metabolite functions supported by the abstracts.\n"
+    "Include one to three plain-text PMID citations only when they directly support "
     "a metabolite function described in the sentence, using this format: [PMID: 1234567].\n\n"
     "- Cite only abstracts that directly support a relevant function. Do not cite abstracts "
     "merely because they were provided, and never list PMIDs without an associated claim.\n"
-    "- If multiple abstracts support a relevant function, use a separate citation for each source"
-    "(e.g., [PMID: 27090191], [PMID: 2382591])"
+    "- If multiple abstracts support a relevant function, use a separate citation for each source "
+    "(e.g., [PMID: 27090191], [PMID: 2382591]).\n"
     "- If the abstracts do not support a function relevant to the search focus, state that "
     "briefly in the single sentence and include no citations (e.g., The provided abstracts do "
     "not contain biological functions specifically addressing {keyword} in relation to {metabolite}.)\n"
@@ -259,7 +259,8 @@ def fetch_abstracts(metabolite: str, keyword: str) -> Tuple[str, List[str]] | No
         return "", []
 
     combined_abstract_text = build_abstract_corpus(response, metabolite)
-    return combined_abstract_text.strip(), pmids
+    included_pmids = re.findall(r"--- ARTICLE PMID (\d+)", combined_abstract_text)
+    return combined_abstract_text.strip(), included_pmids
 
 def analyze_abstract(combined_abstracts: str, task: str) -> str:
     input_text = task + combined_abstracts
@@ -291,22 +292,75 @@ def link_valid_pmids(text: str, pmids: Iterable[str]) -> str:
 
     return citation_pattern.sub(replace_group, text)
 
-def process_metabolite(metabolite, task, keyword):
+def process_metabolite(metabolite: str, task: str, keyword: str) -> dict:
     """
-    Orchestrates the full flow for a single metabolite.
+    Analyze one metabolite and return a structured result record.
     """
     try:
         combined_abstract, pmids = fetch_abstracts(metabolite, keyword)
         if not combined_abstract:
-            return (f"\n## {metabolite}\n"
-                    f"No PubMed publications were found for the metabolite \"{metabolite}\" using the current search "
-                    f"strategy. This does not necessarily indicate that the metabolite has no biological effects; only "
-                    f"that no matching publications were retrieved from PubMed.\n")
-        report = analyze_abstract(combined_abstract, task)
-        return link_valid_pmids(report, pmids)
+            return {
+                "metabolite": str(metabolite),
+                "summary": "No PubMed abstracts were retrieved for this metabolite and search focus.",
+                "status": "no_results",
+                "pmids": [],
+            }
+        summary = analyze_abstract(combined_abstract, task).strip()
+        return {
+            "metabolite": str(metabolite),
+            "summary": summary,
+            "status": "complete",
+            "pmids": pmids,
+        }
 
     except Exception as e:
-        return f"Error processing {metabolite}: {str(e)}"
+        return {
+            "metabolite": str(metabolite),
+            "summary": f"Processing failed: {str(e)}",
+            "status": "error",
+            "pmids": [],
+        }
+
+def build_markdown_report(results: list[dict]) -> str:
+    """Format structured metabolite results as Markdown for display and PDF."""
+    report = "# Metabolite Report\n"
+    for result in results:
+        metabolite = result.get("metabolite", "Unknown metabolite")
+        summary = result.get("summary", "")
+        pmids = result.get("pmids", [])
+        linked_summary = link_valid_pmids(summary, pmids)
+        report += f"\n## {metabolite}\n\n{linked_summary}\n"
+    return report
+
+def get_csv_bytes(results: list[dict]) -> bytes:
+    """Serialize structured metabolite results as UTF-8 CSV bytes."""
+    output = io.StringIO(newline="")
+    fieldnames = ["Metabolite", "Summary", "Status", "PMIDs"]
+    writer = csv.DictWriter(output, fieldnames=fieldnames)
+    writer.writeheader()
+
+    for result in results:
+        summary = result.get("summary", "")
+        allowed_pmids = {str(pmid).strip() for pmid in result.get("pmids", [])}
+        cited_pmids = list(dict.fromkeys(
+            pmid for pmid in re.findall(r"PMID:\s*(\d+)", summary, re.IGNORECASE)
+            if pmid in allowed_pmids
+        ))
+        # Ensure CSV values remain plain text if the model unexpectedly returns Markdown links.
+        summary = re.sub(
+            r"\[PMID:\s*(\d+)\]\(https://pubmed\.ncbi\.nlm\.nih\.gov/\1/?\)",
+            r"[PMID: \1]",
+            summary,
+            flags=re.IGNORECASE,
+        )
+        writer.writerow({
+            "Metabolite": result.get("metabolite", ""),
+            "Summary": summary,
+            "Status": result.get("status", "complete"),
+            "PMIDs": "; ".join(cited_pmids),
+        })
+
+    return output.getvalue().encode("utf-8-sig")
 
 def write_report(report: str, file_name: str):
     with open(f"{file_name}.md", "w", encoding="utf-8") as md_file:
@@ -338,9 +392,14 @@ def get_pdf_bytes(report_text: str):
         if os.path.exists(temp_path):
             os.remove(temp_path)
 
-def analyze_metabolite(metabolite:str, keyword: str):
+def analyze_metabolite(metabolite: str, keyword: str) -> dict:
     if not NCBI_API_KEY:
-        return "ERROR: API keys not found. Check your .env file."
+        return {
+            "metabolite": str(metabolite),
+            "summary": "API keys not found. Check your .env file.",
+            "status": "error",
+            "pmids": [],
+        }
     else:
         analysis_task = (
                 f"Summarize the biological roles or findings supported by the provided PubMed "
@@ -349,11 +408,7 @@ def analyze_metabolite(metabolite:str, keyword: str):
                 + " Follow the required format and evidence rules in your system instructions. "
                   "Use only the provided abstracts as evidence."
         )
-        report_string = ""
-        report = process_metabolite(metabolite, analysis_task, keyword)
-        report_string = report_string + report + "\n"
-        # time.sleep(15)
-        return report_string
+        return process_metabolite(metabolite, analysis_task, keyword)
 
 def main(metabolite: str, keyword: str):
     return analyze_metabolite(metabolite, keyword)

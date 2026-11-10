@@ -59,6 +59,12 @@ The analysis parameters are controlled within the `if __name__ == "__main__"`: b
 | 100                  | $\approx 40 - 80$          |
 
 ## 3. Running the Analysis
+
+In the Streamlit interface, choose PDF or CSV after analysis completes. The PDF report
+formats PMID citations as clickable PubMed links. The CSV contains one row per
+metabolite, with `Metabolite`, `Summary`, `Status`, and `PMIDs` columns; PMID values are
+plain text.
+
 This project is tracked using Git. The following configuration files ensure security and reproducibility:
 
 `.gitignore`: Prevents secrets (`.env`) and large dependency files (`venv/`) from being pushed to GitHub.
