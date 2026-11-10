@@ -13,6 +13,7 @@ from requests import Response
 from enum import Enum, auto
 from markdown_pdf import MarkdownPdf, Section
 from MyAI import MyAI
+from urllib.parse import urlencode
 
 # --- Configuration & Setup ---
 NCBI_BASE_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
@@ -110,21 +111,60 @@ def get_metabolites() -> List[str]:
     metabolite_df = pd.DataFrame(metabolite_file)
     return metabolite_df['Metabolites'].tolist()
 
-def create_url(query_value: str, method: Method = Method.SEARCH) -> str:
-    """
-    Creates either an esearch or efetch url depending on method parameter.
-    :param query_value: str
-    :param method: str
-    :return: str
-    """
-    api_key_param = f"&api_key={NCBI_API_KEY}"
+def build_pubmed_query(metabolite: str, keyword: str = "") -> str:
+    """Build a PubMed query for a metabolite and optional keywords."""
+
+    def as_title_abstract_phrase(term: str) -> str:
+        # Remove surrounding quotes and any internal quotes so the term stays
+        # a single phrase in the generated query.
+        phrase = term.strip().strip('"').replace('"', "")
+        return f'"{phrase}"[tiab]'
+
+    metabolite_term = as_title_abstract_phrase(metabolite)
+    keywords = [
+        term.strip()
+        for term in re.split(r"[,;]", keyword or "")
+        if term.strip()
+    ]
+
+    if not keywords:
+        return metabolite_term
+
+    keyword_terms = " OR ".join(
+        as_title_abstract_phrase(term)
+        for term in keywords
+    )
+    return f"({metabolite_term}) AND ({keyword_terms})"
+
+def create_url(
+    query_value: str,
+    keyword: str = "",
+    method: Method = Method.SEARCH,
+) -> str:
+    """Create an ESearch or EFetch URL for PubMed."""
+
     if method == Method.FETCH:
-        return f"{NCBI_BASE_URL}efetch.fcgi?db=pubmed&id={query_value}&retmode=xml&rettype=abstract{api_key_param}"
+        params = {
+            "db": "pubmed",
+            "id": query_value,
+            "retmode": "xml",
+            "rettype": "abstract",
+        }
+        endpoint = "efetch.fcgi"
     else:
-        return (
-            f"{NCBI_BASE_URL}esearch.fcgi?db=pubmed&term={query_value.replace(' ', '+')}"
-            f"&retmode=json&retmax={MAX_ARTICLES}&sort=relevance{api_key_param}"
-        )
+        params = {
+            "db": "pubmed",
+            "term": build_pubmed_query(query_value, keyword),
+            "retmode": "json",
+            "retmax": MAX_ARTICLES,
+            "sort": "relevance",
+        }
+        endpoint = "esearch.fcgi"
+
+    if NCBI_API_KEY:
+        params["api_key"] = NCBI_API_KEY
+
+    return f"{NCBI_BASE_URL}{endpoint}?{urlencode(params)}"
 
 def is_peptide(metabolite: str) -> bool:
     return all(part in AMINO_ACIDS
@@ -197,12 +237,12 @@ def build_abstract_corpus(response: Response, metabolite:str) -> str:
 
     return combined_abstract_text
 
-def fetch_abstracts(metabolite: str) -> Tuple[str, List[str]] | None:
+def fetch_abstracts(metabolite: str, keyword: str) -> Tuple[str, List[str]] | None:
     """
     Executes ESearch and EFetch to retrieve abstracts for the top MAX_ARTICLES results.
     Returns a single concatenated abstract string and a list of PMIDs.
     """
-    esearch_url = create_url(metabolite, Method.SEARCH)
+    esearch_url = create_url(metabolite, keyword, Method.SEARCH)
     response = exponential_backoff_request(esearch_url)
     if not response:
         return "", []
@@ -213,7 +253,7 @@ def fetch_abstracts(metabolite: str) -> Tuple[str, List[str]] | None:
         return "", []
 
     pmid_list_str = ",".join(pmids)
-    efetch_url = create_url(pmid_list_str, Method.FETCH)
+    efetch_url = create_url(pmid_list_str, keyword, Method.FETCH)
     response = exponential_backoff_request(efetch_url)
     if not response:
         return "", []
@@ -251,12 +291,12 @@ def link_valid_pmids(text: str, pmids: Iterable[str]) -> str:
 
     return citation_pattern.sub(replace_group, text)
 
-def process_metabolite(metabolite, task):
+def process_metabolite(metabolite, task, keyword):
     """
     Orchestrates the full flow for a single metabolite.
     """
     try:
-        combined_abstract, pmids = fetch_abstracts(metabolite)
+        combined_abstract, pmids = fetch_abstracts(metabolite, keyword)
         if not combined_abstract:
             return (f"\n## {metabolite}\n"
                     f"No PubMed publications were found for the metabolite \"{metabolite}\" using the current search "
@@ -310,7 +350,7 @@ def analyze_metabolite(metabolite:str, keyword: str):
                   "Use only the provided abstracts as evidence."
         )
         report_string = ""
-        report = process_metabolite(metabolite, analysis_task)
+        report = process_metabolite(metabolite, analysis_task, keyword)
         report_string = report_string + report + "\n"
         # time.sleep(15)
         return report_string
