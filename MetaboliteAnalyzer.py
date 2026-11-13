@@ -8,6 +8,7 @@ import tempfile
 import re
 import csv
 import io
+import json
 from collections.abc import Iterable
 from typing import List, Tuple
 from dotenv import load_dotenv
@@ -37,18 +38,20 @@ system_prompt = (
     "biological function of each metabolite. Treat the abstracts as the evidence base; "
     "do not present a reported association as proof of causation or a finding in one species "
     "as established in all species.\n\n"
-    "### REQUIRED FORMAT ###\n"
-    "Return exactly one concise sentence and no heading or other commentary.\n"
-    "Summarize the most relevant metabolite functions supported by the abstracts.\n"
-    "Include one to three plain-text PMID citations only when they directly support "
-    "a metabolite function described in the sentence, using this format: [PMID: 1234567].\n\n"
+    "Return the fields required by the response schema. The summary must be exactly one "
+    "concise sentence with no heading or other commentary. Summarize the most relevant "
+    "metabolite functions supported by the abstracts.\n\n"
+    "Use status complete when the abstracts support a metabolite function relevant to the "
+    "search focus (or a clear biological function when no focus is provided). Use status "
+    "no_relevant_results when abstracts were retrieved but do not support a relevant function.\n"
+    "Include one to three plain-text PMID citations only when they directly support a "
+    "function stated in the summary, using this format: [PMID: 1234567].\n\n"
     "- Cite only abstracts that directly support a relevant function. Do not cite abstracts "
     "merely because they were provided, and never list PMIDs without an associated claim.\n"
     "- If multiple abstracts support a relevant function, use a separate citation for each source "
     "(e.g., [PMID: 27090191], [PMID: 2382591]).\n"
-    "- If the abstracts do not support a function relevant to the search focus, state that "
-    "briefly in the single sentence and include no citations (e.g., The provided abstracts do "
-    "not contain biological functions specifically addressing {keyword} in relation to {metabolite}.)\n"
+    "- If status is no_relevant_results, say briefly in the summary that the abstracts do not "
+    "support a function relevant to the search focus and include no citations.\n"
     "### EVIDENCE AND STYLE RULES ###\n"
     "- Synthesize the main relevant themes across the abstracts rather than listing "
     "individual findings or abstracts.\n"
@@ -262,9 +265,23 @@ def fetch_abstracts(metabolite: str, keyword: str) -> Tuple[str, List[str]] | No
     included_pmids = re.findall(r"--- ARTICLE PMID (\d+)", combined_abstract_text)
     return combined_abstract_text.strip(), included_pmids
 
-def analyze_abstract(combined_abstracts: str, task: str) -> str:
+def analyze_abstract(combined_abstracts: str, task: str) -> dict:
     input_text = task + combined_abstracts
-    return my_ai.generate_response(input_text=input_text)
+    response_text = my_ai.generate_response(input_text=input_text)
+    response = json.loads(response_text)
+
+    if not isinstance(response, dict):
+        raise ValueError("Model response must be a JSON object")
+
+    status = response.get("status")
+    summary = response.get("summary")
+    allowed_statuses = {"complete", "no_relevant_results"}
+    if status not in allowed_statuses:
+        raise ValueError(f"Model returned an unsupported status: {status!r}")
+    if not isinstance(summary, str) or not summary.strip():
+        raise ValueError("Model response did not include a summary")
+
+    return {"status": status, "summary": summary.strip()}
 
 def link_valid_pmids(text: str, pmids: Iterable[str]) -> str:
     """Link plain PMID citations when their IDs are in the supplied PMID list."""
@@ -305,11 +322,11 @@ def process_metabolite(metabolite: str, task: str, keyword: str) -> dict:
                 "status": "no_results",
                 "pmids": [],
             }
-        summary = analyze_abstract(combined_abstract, task).strip()
+        analysis = analyze_abstract(combined_abstract, task)
         return {
             "metabolite": str(metabolite),
-            "summary": summary,
-            "status": "complete",
+            "summary": analysis["summary"],
+            "status": analysis["status"],
             "pmids": pmids,
         }
 
@@ -361,6 +378,61 @@ def get_csv_bytes(results: list[dict]) -> bytes:
         })
 
     return output.getvalue().encode("utf-8-sig")
+
+def get_xlsx_bytes(results: list[dict]) -> bytes:
+    """Build an Excel workbook with summaries and clickable PMID references."""
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Font
+
+    workbook = Workbook()
+    summaries_sheet = workbook.active
+    summaries_sheet.title = "Summaries"
+    summaries_sheet.append(["Metabolite", "Summary", "Status"])
+
+    references_sheet = workbook.create_sheet("References")
+    references_sheet.append(["Metabolite", "PMID", "PubMed URL"])
+
+    for sheet in (summaries_sheet, references_sheet):
+        sheet.freeze_panes = "A2"
+        for cell in sheet[1]:
+            cell.font = Font(bold=True)
+
+    for result in results:
+        metabolite = str(result.get("metabolite", ""))
+        summary = str(result.get("summary", ""))
+        status = str(result.get("status", "complete"))
+        summaries_sheet.append([metabolite, summary, status])
+        summaries_sheet.cell(summaries_sheet.max_row, 2).alignment = Alignment(
+            vertical="top", wrap_text=True
+        )
+
+        allowed_pmids = {str(pmid).strip() for pmid in result.get("pmids", [])}
+        cited_pmids = list(dict.fromkeys(
+            pmid for pmid in re.findall(r"PMID:\s*(\d+)", summary, re.IGNORECASE)
+            if pmid in allowed_pmids
+        ))
+        for pmid in cited_pmids:
+            url = f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/"
+            references_sheet.append([metabolite, f"PMID: {pmid}", url])
+            pmid_cell = references_sheet.cell(references_sheet.max_row, 2)
+            pmid_cell.hyperlink = url
+            pmid_cell.style = "Hyperlink"
+
+    summaries_sheet.column_dimensions["A"].width = 24
+    summaries_sheet.column_dimensions["B"].width = 90
+    summaries_sheet.column_dimensions["C"].width = 16
+    for row in summaries_sheet.iter_rows(min_row=2):
+        summaries_sheet.row_dimensions[row[0].row].height = 45
+
+    references_sheet.column_dimensions["A"].width = 24
+    references_sheet.column_dimensions["B"].width = 22
+    references_sheet.column_dimensions["C"].width = 42
+    summaries_sheet.auto_filter.ref = summaries_sheet.dimensions
+    references_sheet.auto_filter.ref = references_sheet.dimensions
+
+    output = io.BytesIO()
+    workbook.save(output)
+    return output.getvalue()
 
 def write_report(report: str, file_name: str):
     with open(f"{file_name}.md", "w", encoding="utf-8") as md_file:
