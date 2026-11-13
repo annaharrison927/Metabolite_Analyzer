@@ -57,7 +57,9 @@ def show_progress():
 if st.session_state['analysis_results']:
     st.divider()
     try:
-        output_format = st.selectbox("Output format", ["PDF", "CSV"], key="output_format")
+        output_format = st.selectbox(
+            "Output format", ["PDF", "CSV", "Excel workbook"], key="output_format"
+        )
         report_markdown = MetaboliteAnalyzer.build_markdown_report(
             st.session_state['analysis_results']
         )
@@ -69,7 +71,7 @@ if st.session_state['analysis_results']:
                 file_name="metabolite_report.pdf",
                 mime="application/pdf"
             )
-        else:
+        elif output_format == "CSV":
             report_data = MetaboliteAnalyzer.get_csv_bytes(
                 st.session_state['analysis_results']
             )
@@ -78,6 +80,16 @@ if st.session_state['analysis_results']:
                 data=report_data,
                 file_name="metabolite_report.csv",
                 mime="text/csv"
+            )
+        else:
+            report_data = MetaboliteAnalyzer.get_xlsx_bytes(
+                st.session_state['analysis_results']
+            )
+            st.download_button(
+                label="Download Excel Workbook",
+                data=report_data,
+                file_name="metabolite_report.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
         if st.checkbox("Show report"):
             if output_format == "PDF":
