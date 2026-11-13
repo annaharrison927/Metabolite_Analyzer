@@ -26,9 +26,22 @@ class MyAI:
         )
 
     def generate_response(self, input_text: str):
+        response_schema = {
+            "type": "OBJECT",
+            "properties": {
+                "status": {
+                    "type": "STRING",
+                    "enum": ["complete", "no_relevant_results"],
+                },
+                "summary": {"type": "STRING"},
+            },
+            "required": ["status", "summary"],
+        }
         config = types.GenerateContentConfig(
             system_instruction=self.system_prompt,
-            temperature=0.3
+            temperature=0.3,
+            response_mime_type="application/json",
+            response_schema=response_schema,
         )
 
         max_attempts = 5
