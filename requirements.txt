@@ -5,3 +5,4 @@ markdown-pdf
 requests
 python-dotenv
 google-genai
+openpyxl
