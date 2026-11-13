@@ -60,10 +60,15 @@ The analysis parameters are controlled within the `if __name__ == "__main__"`: b
 
 ## 3. Running the Analysis
 
-In the Streamlit interface, choose PDF or CSV after analysis completes. The PDF report
-formats PMID citations as clickable PubMed links. The CSV contains one row per
-metabolite, with `Metabolite`, `Summary`, `Status`, and `PMIDs` columns; PMID values are
-plain text.
+In the Streamlit interface, choose PDF, CSV, or Excel workbook after analysis completes.
+The PDF report formats PMID citations as clickable PubMed links. The CSV contains one row
+per metabolite, with `Metabolite`, `Summary`, `Status`, and `PMIDs` columns; PMID values
+are plain text. The Excel workbook contains a `Summaries` sheet and a `References` sheet
+with clickable PMID links to PubMed.
+
+The `Status` field distinguishes `complete` (a relevant function was summarized),
+`no_relevant_results` (abstracts were retrieved but did not support a function relevant
+to the focus), `no_results` (no abstracts were retrieved), and `error` (processing failed).
 
 This project is tracked using Git. The following configuration files ensure security and reproducibility:
 
