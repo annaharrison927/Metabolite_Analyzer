@@ -7,6 +7,8 @@ st.set_page_config(page_title="Metabolite AI Research Assistant", layout="wide")
 st.title('Metabolite Analyzer')
 if 'analysis_results' not in st.session_state:
     st.session_state['analysis_results'] = None
+if 'model_usage' not in st.session_state:
+    st.session_state['model_usage'] = None
 
 with st.expander("How to use this tool"):
     left_column, right_column = st.columns([2,1],
@@ -57,6 +59,32 @@ def show_progress():
 if st.session_state['analysis_results']:
     st.divider()
     try:
+        usage_summary = st.session_state.get("model_usage")
+        if usage_summary:
+            st.subheader("Model usage estimate")
+            usage_columns = st.columns(4)
+            usage_columns[0].metric("Model", usage_summary["model"])
+            usage_columns[1].metric(
+                "Input tokens",
+                usage_summary["input_tokens"] if usage_summary["input_tokens"] is not None else "Unavailable",
+            )
+            usage_columns[2].metric(
+                "Output tokens",
+                usage_summary["output_tokens"] if usage_summary["output_tokens"] is not None else "Unavailable",
+            )
+            usage_columns[3].metric(
+                "Total tokens",
+                usage_summary["total_tokens"] if usage_summary["total_tokens"] is not None else "Unavailable",
+            )
+            if usage_summary["estimated_usd"] is None:
+                st.caption("Estimated cost unavailable because token usage or model pricing is unknown.")
+            else:
+                st.caption(
+                    f"Estimated API cost: ${usage_summary['estimated_usd']:.6f} USD "
+                    f"using rates effective {usage_summary['rate_effective_date']}. "
+                    "This is an estimate and may differ from billed usage."
+                )
+
         output_format = st.selectbox(
             "Output format", ["PDF", "CSV", "Excel workbook"], key="output_format"
         )
@@ -107,17 +135,23 @@ if st.button('Click to start analysis'):
         st.write('Please upload a .csv file with a list of metabolites before proceeding.')
     else:
         results = []
+        model_usage_records = []
         metabolites = dataframe['Metabolites'].tolist()
         progress_text = st.empty()
         progress_bar = st.progress(0)
         for i, metabolite in enumerate(metabolites):
-            result = MetaboliteAnalyzer.analyze_metabolite(metabolite, keyword)
+            result = MetaboliteAnalyzer.analyze_metabolite(
+                metabolite, keyword, usage_collector=model_usage_records
+            )
             results.append(result)
             percent_completed = (i+1)/len(metabolites)
             progress_bar.progress(percent_completed)
             progress_text.text(f'{percent_completed * 100}% complete')
         progress_text.text('Done!')
         st.session_state['analysis_results'] = results
+        st.session_state['model_usage'] = MetaboliteAnalyzer.aggregate_model_usage(
+            model_usage_records
+        )
         st.rerun()
 
 
