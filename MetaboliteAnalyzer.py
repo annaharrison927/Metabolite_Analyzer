@@ -8,7 +8,6 @@ import tempfile
 import re
 import csv
 import io
-import json
 from collections.abc import Iterable
 from typing import List, Tuple
 from dotenv import load_dotenv
@@ -30,7 +29,17 @@ AMINO_ACIDS = {'Ala', 'Arg', 'Asn', 'Asp', 'Cys',
 load_dotenv()
 NCBI_API_KEY = os.environ.get("NCBI_API_KEY")
 
-model_name = "gemini-flash-lite-latest"
+model_name = os.environ.get("OPENAI_MODEL", "gpt-6-luna")
+
+# Standard API rates in USD per million tokens, checked against the published
+# OpenAI pricing page on 2026-11-16. Update this table when rates change.
+MODEL_PRICING = {
+    "gpt-6-luna": {
+        "input_usd_per_million_tokens": 0.05,
+        "output_usd_per_million_tokens": 0.25,
+        "effective_date": "2026-11-16",
+    }
+}
 
 system_prompt = (
     "You are a biomedical literature assistant specializing in metabolite research. "
@@ -267,8 +276,7 @@ def fetch_abstracts(metabolite: str, keyword: str) -> Tuple[str, List[str]] | No
 
 def analyze_abstract(combined_abstracts: str, task: str) -> dict:
     input_text = task + combined_abstracts
-    response_text = my_ai.generate_response(input_text=input_text)
-    response = json.loads(response_text)
+    response = my_ai.generate_response(input_text=input_text)
 
     if not isinstance(response, dict):
         raise ValueError("Model response must be a JSON object")
@@ -281,7 +289,26 @@ def analyze_abstract(combined_abstracts: str, task: str) -> dict:
     if not isinstance(summary, str) or not summary.strip():
         raise ValueError("Model response did not include a summary")
 
-    return {"status": status, "summary": summary.strip()}
+    usage = response.get("usage")
+    if not isinstance(usage, dict):
+        usage = {"input_tokens": None, "output_tokens": None, "total_tokens": None}
+    normalized_usage = {
+        key: usage.get(key) if isinstance(usage.get(key), int) and usage.get(key) >= 0 else None
+        for key in ("input_tokens", "output_tokens", "total_tokens")
+    }
+    if (normalized_usage["total_tokens"] is None
+            and normalized_usage["input_tokens"] is not None
+            and normalized_usage["output_tokens"] is not None):
+        normalized_usage["total_tokens"] = (
+            normalized_usage["input_tokens"] + normalized_usage["output_tokens"]
+        )
+
+    return {
+        "status": status,
+        "summary": summary.strip(),
+        "usage": normalized_usage,
+        "response_id": response.get("response_id"),
+    }
 
 def link_valid_pmids(text: str, pmids: Iterable[str]) -> str:
     """Link plain PMID citations when their IDs are in the supplied PMID list."""
@@ -309,7 +336,12 @@ def link_valid_pmids(text: str, pmids: Iterable[str]) -> str:
 
     return citation_pattern.sub(replace_group, text)
 
-def process_metabolite(metabolite: str, task: str, keyword: str) -> dict:
+def process_metabolite(
+    metabolite: str,
+    task: str,
+    keyword: str,
+    usage_collector: list[dict] | None = None,
+) -> dict:
     """
     Analyze one metabolite and return a structured result record.
     """
@@ -323,6 +355,12 @@ def process_metabolite(metabolite: str, task: str, keyword: str) -> dict:
                 "pmids": [],
             }
         analysis = analyze_abstract(combined_abstract, task)
+        if usage_collector is not None:
+            usage_collector.append({
+                "model": model_name,
+                "usage": analysis["usage"],
+                "response_id": analysis.get("response_id"),
+            })
         return {
             "metabolite": str(metabolite),
             "summary": analysis["summary"],
@@ -464,11 +502,22 @@ def get_pdf_bytes(report_text: str):
         if os.path.exists(temp_path):
             os.remove(temp_path)
 
-def analyze_metabolite(metabolite: str, keyword: str) -> dict:
+def analyze_metabolite(
+    metabolite: str,
+    keyword: str,
+    usage_collector: list[dict] | None = None,
+) -> dict:
     if not NCBI_API_KEY:
         return {
             "metabolite": str(metabolite),
-            "summary": "API keys not found. Check your .env file.",
+            "summary": "NCBI API key not found. Check your .env file.",
+            "status": "error",
+            "pmids": [],
+        }
+    elif not os.environ.get("OPENAI_API_KEY", "").strip():
+        return {
+            "metabolite": str(metabolite),
+            "summary": "OpenAI API key not found. Set OPENAI_API_KEY in your .env file.",
             "status": "error",
             "pmids": [],
         }
@@ -480,7 +529,63 @@ def analyze_metabolite(metabolite: str, keyword: str) -> dict:
                 + " Follow the required format and evidence rules in your system instructions. "
                   "Use only the provided abstracts as evidence."
         )
-        return process_metabolite(metabolite, analysis_task, keyword)
+        return process_metabolite(
+            metabolite, analysis_task, keyword, usage_collector=usage_collector
+        )
+
+
+def estimate_model_cost(model: str, input_tokens: int | None, output_tokens: int | None) -> dict:
+    """Estimate standard API cost from token usage; return unavailable when unknown."""
+    pricing = MODEL_PRICING.get(model)
+    if (pricing is None or not isinstance(input_tokens, int) or input_tokens < 0
+            or not isinstance(output_tokens, int) or output_tokens < 0):
+        return {
+            "model": model,
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+            "estimated_usd": None,
+            "rate_effective_date": pricing["effective_date"] if pricing else None,
+        }
+
+    estimated_usd = (
+        input_tokens * pricing["input_usd_per_million_tokens"]
+        + output_tokens * pricing["output_usd_per_million_tokens"]
+    ) / 1_000_000
+    return {
+        "model": model,
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "estimated_usd": estimated_usd,
+        "rate_effective_date": pricing["effective_date"],
+    }
+
+
+def aggregate_model_usage(usage_records: list[dict]) -> dict:
+    """Aggregate successful model calls without treating unknown counts as zero."""
+    models = list(dict.fromkeys(record.get("model") for record in usage_records))
+    model = models[0] if len(models) == 1 else (", ".join(models) if models else model_name)
+    input_counts = [record.get("usage", {}).get("input_tokens") for record in usage_records]
+    output_counts = [record.get("usage", {}).get("output_tokens") for record in usage_records]
+    input_tokens = sum(input_counts) if input_counts and all(
+        isinstance(count, int) and count >= 0 for count in input_counts
+    ) else None
+    output_tokens = sum(output_counts) if output_counts and all(
+        isinstance(count, int) and count >= 0 for count in output_counts
+    ) else None
+    total_tokens = input_tokens + output_tokens if (
+        input_tokens is not None and output_tokens is not None
+    ) else None
+    cost = estimate_model_cost(model, input_tokens, output_tokens)
+    return {
+        "model": model,
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "total_tokens": total_tokens,
+        "estimated_usd": cost["estimated_usd"],
+        "rate_effective_date": cost["rate_effective_date"],
+        "successful_calls": len(usage_records),
+    }
+
 
 def main(metabolite: str, keyword: str):
     return analyze_metabolite(metabolite, keyword)
